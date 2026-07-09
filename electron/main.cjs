@@ -4,6 +4,9 @@ const http = require('http')
 const https = require('https')
 const fs = require('fs')
 
+// 设置应用名称（任务栏显示）
+app.name = '财税管理平台'
+
 let mainWindow
 // 从package.json读取版本号，改版本只需改package.json的version字段
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
@@ -56,12 +59,19 @@ function checkDevServer() {
 }
 
 async function createWindow() {
+  // 根据环境选择图标路径
+  const isDev = !app.isPackaged
+  const iconPath = isDev
+    ? path.join(__dirname, '..', 'build', 'icon.png')
+    : path.join(process.resourcesPath, 'build', 'icon.png')
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1000,
     minHeight: 700,
     title: '财税管理平台',
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -69,9 +79,9 @@ async function createWindow() {
   })
 
   // 检测开发服务器是否运行
-  const isDev = await checkDevServer()
+  const devServerRunning = await checkDevServer()
 
-  if (isDev) {
+  if (devServerRunning) {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
   } else {

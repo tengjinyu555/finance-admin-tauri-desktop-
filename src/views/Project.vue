@@ -272,9 +272,12 @@
                 </el-table-column>
                 <el-table-column prop="advanceDate" label="垫资日期" width="110" align="center" />
                 <el-table-column prop="purpose" label="用途" min-width="150" show-overflow-tooltip />
-                <el-table-column prop="invoiceType" label="发票" width="80" align="center">
+                <el-table-column prop="invoiceType" label="发票" width="100" align="center">
                   <template #default="{ row }">
-                    <el-tag v-if="row.invoiceType" size="small" :type="row.invoiceType === '有票' ? 'primary' : 'warning'">{{ row.invoiceType }}</el-tag>
+                    <el-button v-if="row.invoiceType === '有票'" type="primary" link size="small" @click="viewInvoice(row.invoiceNo)">
+                      有票 <el-icon><View /></el-icon>
+                    </el-button>
+                    <el-tag v-else-if="row.invoiceType === '无票'" size="small" type="warning">无票</el-tag>
                     <span v-else>-</span>
                   </template>
                 </el-table-column>
@@ -311,9 +314,12 @@
                   <template #default="{ row }"><span style="color: #f56c6c; font-weight: 600;">¥{{ formatMoney(row.amount) }}</span></template>
                 </el-table-column>
                 <el-table-column prop="expenseDate" label="日期" width="110" align="center" />
-                <el-table-column prop="invoiceType" label="发票" width="80" align="center">
+                <el-table-column prop="invoiceType" label="发票" width="100" align="center">
                   <template #default="{ row }">
-                    <el-tag v-if="row.invoiceType" size="small" :type="row.invoiceType === '有票' ? 'primary' : 'warning'">{{ row.invoiceType }}</el-tag>
+                    <el-button v-if="row.invoiceType === '有票'" type="primary" link size="small" @click="viewInvoice(row.invoiceNo)">
+                      有票 <el-icon><View /></el-icon>
+                    </el-button>
+                    <el-tag v-else-if="row.invoiceType === '无票'" size="small" type="warning">无票</el-tag>
                     <span v-else>-</span>
                   </template>
                 </el-table-column>
@@ -350,9 +356,12 @@
                   <template #default="{ row }"><span style="color: #67c23a; font-weight: 600;">¥{{ formatMoney(row.amount) }}</span></template>
                 </el-table-column>
                 <el-table-column prop="receiptDate" label="日期" width="110" align="center" />
-                <el-table-column prop="invoiceType" label="发票" width="80" align="center">
+                <el-table-column prop="invoiceType" label="发票" width="100" align="center">
                   <template #default="{ row }">
-                    <el-tag v-if="row.invoiceType" size="small" :type="row.invoiceType === '有票' ? 'primary' : 'warning'">{{ row.invoiceType }}</el-tag>
+                    <el-button v-if="row.invoiceType === '有票'" type="primary" link size="small" @click="viewInvoice(row.invoiceNo)">
+                      有票 <el-icon><View /></el-icon>
+                    </el-button>
+                    <el-tag v-else-if="row.invoiceType === '无票'" size="small" type="warning">无票</el-tag>
                     <span v-else>-</span>
                   </template>
                 </el-table-column>
@@ -392,15 +401,15 @@
                 </div>
                 <div class="flow-info">
                   <div class="flow-title">
-                    {{ flow.summary || flow.customerName }}
-                    <el-tag size="small" :type="flow.invoiceType === '有票' ? 'primary' : 'warning'" style="margin-left: 6px; font-size: 10px;">
-                      {{ flow.invoiceType || '无票' }}
+                    {{ flow.customerName }}
+                    <el-tag size="small" :type="flow.type === 'receipt' ? 'success' : 'warning'" style="margin-left: 6px; font-size: 10px;">
+                      {{ flow.type === 'receipt' ? '已回款' : flow.type === 'expense' ? '已付款' : '已垫资' }}
                     </el-tag>
                   </div>
                   <div class="flow-meta">
-                    <el-icon size="12"><Document /></el-icon> {{ flow.flowDate }} · {{ flow.customerName }} ·
-                    <span :style="{ color: flow.type === 'receipt' ? '#67c23a' : '#e6a23c' }">
-                      {{ flow.type === 'receipt' ? '已回款' : flow.type === 'expense' ? '已付款' : '已垫资' }}
+                    <el-icon size="12"><Document /></el-icon> {{ flow.flowDate }} · {{ flow.summary || '-' }} ·
+                    <span :class="['invoice-tag', flow.invoiceType === '有票' ? 'has-invoice' : 'no-invoice']">
+                      {{ flow.invoiceType || '无票' }}
                     </span>
                   </div>
                 </div>
@@ -638,7 +647,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, ArrowDown, Document, Money, DataAnalysis, Notebook, User, Download } from '@element-plus/icons-vue'
+import { Plus, ArrowDown, Document, Money, DataAnalysis, Notebook, User, Download, View } from '@element-plus/icons-vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import '@wangeditor/editor/dist/css/style.css'
 import api from '../api/index'
@@ -982,6 +991,25 @@ const onInvoiceSelect = (invoiceId) => {
     flowForm.invoiceNo = inv.number
     flowForm.amount = inv.total || 0
     flowForm.customerName = inv.buyerName || inv.sellerName || ''
+  }
+}
+
+// 查看发票图片/PDF
+const viewInvoice = async (invoiceNo) => {
+  if (!invoiceNo) {
+    ElMessage.warning('发票号为空')
+    return
+  }
+  try {
+    const invoices = await InvoiceApi.list()
+    const invoice = invoices.find(i => i.number === invoiceNo)
+    if (invoice && invoice.imageUrl) {
+      window.open(invoice.imageUrl, '_blank')
+    } else {
+      ElMessage.warning('未找到发票图片')
+    }
+  } catch (e) {
+    ElMessage.error('查询发票失败')
   }
 }
 
@@ -1708,6 +1736,25 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.invoice-tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.invoice-tag.has-invoice {
+  background: #f0f9eb;
+  color: #67c23a;
+  border: 1px solid #c2e7b0;
+}
+
+.invoice-tag.no-invoice {
+  background: #fef0f0;
+  color: #f56c6c;
+  border: 1px solid #fbc4c4;
 }
 
 .flow-list :deep(.el-table th) {

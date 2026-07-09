@@ -1,12 +1,23 @@
 <template>
   <div class="login-page">
-    <div class="bg-layer"><div class="bg-grid"></div></div>
+    <div class="bg-layer">
+      <div class="particles" ref="particlesRef"></div>
+      <div class="light-rays">
+        <div class="ray ray-1"></div>
+        <div class="ray ray-2"></div>
+        <div class="ray ray-3"></div>
+      </div>
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+      <div class="gradient-orb orb-3"></div>
+    </div>
 
     <div class="container">
       <!-- 左侧品牌区 -->
       <div class="brand-section">
         <div class="brand-header">
           <div class="logo-wrapper">
+            <div class="logo-ring"></div>
             <span class="logo-text">税</span>
           </div>
           <div class="brand-title">
@@ -46,65 +57,18 @@
             <p>请使用账号密码登录系统</p>
           </div>
 
-          <el-tabs v-model="activeTab">
-            <el-tab-pane label="登录" name="login">
-              <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef" label-position="top" @submit.prevent="handleLogin">
-                <el-form-item label="用户名" prop="username">
-                  <el-input v-model="loginForm.username" placeholder="请输入用户名" :prefix-icon="User" />
-                </el-form-item>
-                <el-form-item label="密码" prop="password">
-                  <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" :prefix-icon="Lock" show-password />
-                </el-form-item>
-                <el-form-item>
-                  <el-checkbox v-model="rememberMe">记住密码</el-checkbox>
-                </el-form-item>
-                <el-button type="primary" :loading="loading" @click="handleLogin" class="login-btn">登 录</el-button>
-              </el-form>
-            </el-tab-pane>
-
-            <el-tab-pane label="注册" name="register">
-              <el-form :model="registerForm" :rules="registerRules" ref="registerFormRef" label-position="top">
-                <el-form-item label="所属企业">
-                  <el-select
-                    v-model="registerForm.tenantId"
-                    filterable
-                    remote
-                    :remote-method="searchTenant"
-                    :loading="tenantLoading"
-                    placeholder="输入租户名称搜索..."
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="t in tenantList"
-                      :key="t.id"
-                      :label="t.name"
-                      :value="t.id"
-                    />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="用户名" prop="username">
-                  <el-input v-model="registerForm.username" placeholder="请输入用户名" />
-                </el-form-item>
-                <el-form-item label="昵称" prop="nickname">
-                  <el-input v-model="registerForm.nickname" placeholder="请输入昵称" />
-                </el-form-item>
-                <el-form-item label="密码" prop="password">
-                  <el-input v-model="registerForm.password" type="password" placeholder="请输入密码" show-password />
-                </el-form-item>
-                <el-form-item label="确认密码" prop="password2">
-                  <el-input v-model="registerForm.password2" type="password" placeholder="请确认密码" show-password />
-                </el-form-item>
-                <el-form-item label="角色">
-                  <el-checkbox-group v-model="registerForm.roles">
-                    <el-checkbox label="admin">管理员</el-checkbox>
-                    <el-checkbox label="finance">财务录入</el-checkbox>
-                    <el-checkbox label="viewer">普通查看</el-checkbox>
-                  </el-checkbox-group>
-                </el-form-item>
-                <el-button type="primary" :loading="loading" @click="handleRegister" class="login-btn">注 册</el-button>
-              </el-form>
-            </el-tab-pane>
-          </el-tabs>
+          <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef" label-position="top" @submit.prevent="handleLogin">
+            <el-form-item label="用户名" prop="username">
+              <el-input v-model="loginForm.username" placeholder="请输入用户名" :prefix-icon="User" />
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
+              <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" :prefix-icon="Lock" show-password />
+            </el-form-item>
+            <el-form-item>
+              <el-checkbox v-model="rememberMe">记住密码</el-checkbox>
+            </el-form-item>
+            <el-button type="primary" :loading="loading" @click="handleLogin" class="login-btn">登 录</el-button>
+          </el-form>
 
           <div class="login-footer">
             <span>财税管理平台</span>
@@ -116,48 +80,29 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Document, Monitor, DataAnalysis } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
-import { AuthApi, TenantApi } from '../api/invoice'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeTab = ref('login')
 const loading = ref(false)
-const tenantLoading = ref(false)
-const tenantList = ref([])
 const rememberMe = ref(false)
+const particlesRef = ref(null)
+let animationFrame = null
 
 const loginFormRef = ref()
-const registerFormRef = ref()
 
 const loginForm = reactive({
-  tenantId: '',
   username: '',
   password: ''
 })
 
-const registerForm = reactive({
-  tenantId: '',
-  username: '',
-  nickname: '',
-  password: '',
-  password2: '',
-  roles: ['viewer']
-})
-
 const loginRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-}
-
-const registerRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
@@ -167,27 +112,38 @@ onMounted(() => {
   if (saved) {
     try {
       const data = JSON.parse(saved)
-      loginForm.tenantId = data.tenantId
       loginForm.username = data.username
       loginForm.password = data.password
       rememberMe.value = true
-      // 恢复企业选项显示
-      if (data.tenantName) {
-        tenantList.value = [{ id: data.tenantId, name: data.tenantName, code: data.tenantCode || '' }]
-      }
     } catch (e) {}
+  }
+  initParticles()
+})
+
+onUnmounted(() => {
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame)
   }
 })
 
-const searchTenant = async (query) => {
-  if (!query) return
-  tenantLoading.value = true
-  try {
-    tenantList.value = await TenantApi.search(query)
-  } catch (e) {
-    console.error(e)
+// 粒子动画
+const initParticles = () => {
+  if (!particlesRef.value) return
+  const container = particlesRef.value
+  const particleCount = 50
+
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div')
+    particle.className = 'particle'
+    const size = Math.random() * 4 + 2
+    particle.style.width = size + 'px'
+    particle.style.height = size + 'px'
+    particle.style.left = Math.random() * 100 + '%'
+    particle.style.top = Math.random() * 100 + '%'
+    particle.style.animationDuration = (Math.random() * 20 + 10) + 's'
+    particle.style.animationDelay = (Math.random() * 10) + 's'
+    container.appendChild(particle)
   }
-  tenantLoading.value = false
 }
 
 const handleLogin = async () => {
@@ -211,32 +167,6 @@ const handleLogin = async () => {
   }
   loading.value = false
 }
-
-const handleRegister = async () => {
-  if (!registerForm.tenantId) {
-    ElMessage.warning('请选择租户')
-    return
-  }
-  await registerFormRef.value.validate()
-  if (registerForm.password !== registerForm.password2) {
-    ElMessage.error('两次密码不一致')
-    return
-  }
-  loading.value = true
-  try {
-    await AuthApi.register({
-      username: registerForm.username,
-      password: registerForm.password,
-      nickname: registerForm.nickname,
-      role: registerForm.roles
-    }, registerForm.tenantId)
-    ElMessage.success('注册成功，请登录')
-    activeTab.value = 'login'
-  } catch (e) {
-    ElMessage.error(e.response?.data?.error || '注册失败')
-  }
-  loading.value = false
-}
 </script>
 
 <style scoped>
@@ -245,9 +175,10 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f2f5;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
   position: relative;
   padding: 20px;
+  overflow: hidden;
 }
 
 .bg-layer {
@@ -255,19 +186,104 @@ const handleRegister = async () => {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    linear-gradient(135deg, rgba(30, 64, 175, 0.04) 0%, transparent 50%),
-    linear-gradient(225deg, rgba(217, 119, 6, 0.03) 0%, transparent 50%);
 }
 
-.bg-grid {
+.particles {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(30, 64, 175, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(30, 64, 175, 0.04) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 30%, transparent 70%);
+  overflow: hidden;
+}
+
+:deep(.particle) {
+  position: absolute;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.8) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: particleFloat linear infinite;
+}
+
+@keyframes particleFloat {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+}
+
+.light-rays {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.ray {
+  position: absolute;
+  width: 2px;
+  height: 150%;
+  background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.3), transparent);
+  transform-origin: top center;
+  animation: rayMove 8s ease-in-out infinite;
+}
+
+.ray-1 {
+  left: 20%;
+  animation-delay: 0s;
+  transform: rotate(-15deg);
+}
+
+.ray-2 {
+  left: 50%;
+  animation-delay: -3s;
+  transform: rotate(0deg);
+}
+
+.ray-3 {
+  left: 80%;
+  animation-delay: -6s;
+  transform: rotate(15deg);
+}
+
+@keyframes rayMove {
+  0%, 100% { opacity: 0.3; transform: rotate(-15deg) translateX(0); }
+  50% { opacity: 0.6; transform: rotate(15deg) translateX(50px); }
+}
+
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: orbFloat 15s ease-in-out infinite;
+}
+
+.orb-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%);
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%);
+  bottom: -50px;
+  right: -50px;
+  animation-delay: -5s;
+}
+
+.orb-3 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
+  top: 50%;
+  left: 60%;
+  animation-delay: -10s;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(50px, -50px) scale(1.2); }
+  66% { transform: translate(-30px, 30px) scale(0.8); }
 }
 
 .container {
@@ -296,12 +312,32 @@ const handleRegister = async () => {
 .logo-wrapper {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(30, 64, 175, 0.15);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+  position: relative;
+  animation: logoGlow 3s ease-in-out infinite;
+}
+
+.logo-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 18px;
+  border: 2px solid rgba(59, 130, 246, 0.5);
+  animation: ringPulse 2s ease-in-out infinite;
+}
+
+@keyframes logoGlow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 8px 40px rgba(59, 130, 246, 0.6); }
+}
+
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.5; }
 }
 
 .logo-text {
@@ -320,14 +356,15 @@ const handleRegister = async () => {
 .brand-name {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  color: #ffffff;
   letter-spacing: 2px;
   font-family: 'Noto Serif SC', serif;
+  text-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
 }
 
 .brand-subtitle {
   font-size: 11px;
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 500;
   letter-spacing: 4px;
   text-transform: uppercase;
@@ -335,7 +372,7 @@ const handleRegister = async () => {
 
 .brand-tagline {
   font-size: 14px;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.8;
 }
 
@@ -350,18 +387,44 @@ const handleRegister = async () => {
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.7);
+  animation: fadeInLeft 0.6s ease-out forwards;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+  color: #ffffff;
+  transform: translateX(10px);
+}
+
+.feature-item:nth-child(1) { animation-delay: 0.2s; }
+.feature-item:nth-child(2) { animation-delay: 0.4s; }
+.feature-item:nth-child(3) { animation-delay: 0.6s; }
+.feature-item:nth-child(4) { animation-delay: 0.8s; }
+
+@keyframes fadeInLeft {
+  0% { opacity: 0; transform: translateX(-30px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 
 .feature-icon {
-  width: 32px;
-  height: 32px;
-  background: rgba(30, 64, 175, 0.06);
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #3b82f6;
+  color: #60a5fa;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.feature-item:hover .feature-icon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(139, 92, 246, 0.4));
+  transform: scale(1.15) rotate(5deg);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
 }
 
 .login-section {
@@ -371,9 +434,24 @@ const handleRegister = async () => {
 }
 
 .login-card {
-  border-radius: 16px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: all 0.4s ease;
+  animation: slideIn 0.8s ease-out;
+}
+
+.login-card:hover {
+  box-shadow: 0 30px 60px -15px rgba(59, 130, 246, 0.3);
+  transform: translateY(-8px);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+@keyframes slideIn {
+  0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .login-card :deep(.el-card__body) {
@@ -386,15 +464,19 @@ const handleRegister = async () => {
 }
 
 .login-header h2 {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #111827;
-  margin-bottom: 6px;
+  color: #ffffff;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #ffffff, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .login-header p {
   font-size: 13px;
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .login-btn {
@@ -403,19 +485,85 @@ const handleRegister = async () => {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 2px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: none;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.login-btn:hover::before {
+  left: 100%;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
 }
 
 .login-footer {
   text-align: center;
   margin-top: 20px;
   font-size: 12px;
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .form-tip {
   font-size: 12px;
   color: #999;
   margin-top: 4px;
+}
+
+:deep(.el-form-item__label) {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:deep(.el-input__wrapper) {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__wrapper:hover) {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+:deep(.el-input__inner) {
+  color: #ffffff !important;
+}
+
+:deep(.el-input__inner::placeholder) {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+:deep(.el-checkbox__label) {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:deep(.el-checkbox__inner) {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
 }
 
 @media (max-width: 968px) {
@@ -439,6 +587,9 @@ const handleRegister = async () => {
     text-align: center;
   }
   .brand-features {
+    display: none;
+  }
+  .orb-1, .orb-2, .orb-3 {
     display: none;
   }
 }
