@@ -13,6 +13,10 @@ const api = axios.create({
 let isRefreshing = false
 let failedQueue = []
 let refreshPromise = null
+// 使用window对象以便在其他地方重置
+if (!window.__isRedirectingToLogin) {
+  window.__isRedirectingToLogin = false
+}
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
@@ -59,6 +63,7 @@ const refreshAccessToken = async () => {
       })
       const newToken = response.data.token
       localStorage.setItem('token', newToken)
+      window.__isRedirectingToLogin = false
       return newToken
     } catch (e) {
       throw e
@@ -68,6 +73,17 @@ const refreshAccessToken = async () => {
   })()
 
   return refreshPromise
+}
+
+// 跳转到登录页的统一方法
+const redirectToLogin = () => {
+  if (window.__isRedirectingToLogin) return
+  window.__isRedirectingToLogin = true
+  localStorage.removeItem('user')
+  localStorage.removeItem('token')
+  localStorage.removeItem('tenantId')
+  router.push('/login')
+  ElMessage.error('登录已过期，请重新登录')
 }
 
 // 请求拦截器
@@ -83,12 +99,7 @@ api.interceptors.request.use(async config => {
         processQueue(null, token)
       } catch (e) {
         processQueue(e, null)
-        // 刷新失败，跳转登录
-        localStorage.removeItem('user')
-        localStorage.removeItem('token')
-        localStorage.removeItem('tenantId')
-        router.push('/login')
-        ElMessage.error('登录已过期，请重新登录')
+        redirectToLogin()
         return Promise.reject(e)
       } finally {
         isRefreshing = false
@@ -119,12 +130,7 @@ api.interceptors.response.use(
   response => response.data,
   error => {
     if (error.response?.status === 401) {
-      // token失效，清除本地存储并跳转登录页
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
-      localStorage.removeItem('tenantId')
-      router.push('/login')
-      ElMessage.error('登录已过期，请重新登录')
+      redirectToLogin()
     } else {
       const message = error.response?.data?.error || '请求失败'
       ElMessage.error(message)

@@ -2,9 +2,12 @@ const { app, BrowserWindow, globalShortcut, dialog, shell } = require('electron'
 const path = require('path')
 const http = require('http')
 const https = require('https')
+const fs = require('fs')
 
 let mainWindow
-const CURRENT_VERSION = '1.0.0'
+// 从package.json读取版本号，改版本只需改package.json的version字段
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
+const CURRENT_VERSION = packageJson.version
 
 function checkVersion() {
   return new Promise((resolve) => {

@@ -109,6 +109,7 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item @click="showEdit(row)">编辑</el-dropdown-item>
+                  <el-dropdown-item @click="downloadInvoice(row)">下载发票</el-dropdown-item>
                   <el-dropdown-item v-if="row.type === 'input'" @click="showRelation(row)">关联收入</el-dropdown-item>
                   <el-dropdown-item v-if="row.type === 'input'" @click="showRelated(row)">查看关联</el-dropdown-item>
                   <el-dropdown-item divided @click="handleDelete(row)" style="color: #f56c6c">删除</el-dropdown-item>
@@ -498,6 +499,38 @@ const showAdd = () => {
     amount: 0, tax: 0, rate: '13%', status: '未认证'
   })
   dialogVisible.value = true
+}
+
+const downloadInvoice = (row) => {
+  if (!row.imageUrl) {
+    ElMessage.warning('该发票没有附件')
+    return
+  }
+  // 根据文件类型设置扩展名
+  const url = row.imageUrl.toLowerCase()
+  let ext = '.jpg'
+  if (url.endsWith('.pdf')) {
+    ext = '.pdf'
+  } else if (url.endsWith('.png')) {
+    ext = '.png'
+  } else if (url.endsWith('.bmp')) {
+    ext = '.bmp'
+  }
+
+  // 文件名：发票号码_购方_销方
+  const invoiceNo = row.number || '未知'
+  const buyer = row.buyerName || '未知'
+  const seller = row.sellerName || '未知'
+  const fileName = invoiceNo + '_' + buyer + '_' + seller + ext
+
+  const link = document.createElement('a')
+  link.href = row.imageUrl
+  link.download = fileName
+  link.target = '_blank'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  ElMessage.success('开始下载')
 }
 
 const showEdit = (row) => {

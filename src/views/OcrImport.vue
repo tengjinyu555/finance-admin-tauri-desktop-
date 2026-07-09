@@ -138,7 +138,8 @@ const startRecognize = async () => {
         const isInput = d.buyerTaxNo === userStore.myTaxNo
         ocrResults.value.push({
           ...d,
-          type: isInput ? 'input' : 'output'
+          type: isInput ? 'input' : 'output',
+          imageUrl: fileUrl  // 保存图片路径
         })
       }
     } catch (e) {
@@ -188,7 +189,8 @@ const saveResults = async () => {
         sellerName: item.sellerName || '',
         sellerTaxNo: item.sellerTaxNo || '',
         status: '未认证',
-        remark: 'OCR导入'
+        remark: 'OCR导入',
+        imageUrl: item.imageUrl || ''  // 保存图片路径
       }
 
       await InvoiceApi.create(invoiceData)

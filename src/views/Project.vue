@@ -31,18 +31,27 @@
       <template #header>
         <div class="flex-between">
           <span>项目列表</span>
-          <el-button type="primary" @click="showAdd">
-            <el-icon><Plus /></el-icon> 新建项目
-          </el-button>
+          <div class="btn-group">
+            <el-button @click="exportData">
+              <el-icon><Download /></el-icon> 导出Excel
+            </el-button>
+            <el-button type="primary" @click="showAdd">
+              <el-icon><Plus /></el-icon> 新建项目
+            </el-button>
+          </div>
         </div>
       </template>
 
       <el-table :data="tableData" border v-loading="loading" style="width: 100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="projectNo" label="项目编号" min-width="120" align="center" />
-        <el-table-column prop="projectName" label="项目名称" min-width="180" align="center">
+        <el-table-column prop="projectNo" label="项目编号" min-width="180" align="center">
           <template #default="{ row }">
-            <strong>{{ row.projectName }}</strong>
+            <span class="clickable-text" @click="showDetail(row)">{{ row.projectNo }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="projectName" label="项目名称" min-width="250" align="center">
+          <template #default="{ row }">
+            <span class="clickable-text" @click="showDetail(row)"><strong>{{ row.projectName }}</strong></span>
           </template>
         </el-table-column>
         <el-table-column prop="manager" label="负责人" width="100" align="center" />
@@ -138,15 +147,13 @@
         <!-- 顶部Header -->
         <div class="pd-header">
           <div class="pd-header-left">
-            <div class="pd-name">{{ currentProject.projectName }}</div>
-            <div class="pd-meta">
-              <span>负责人：{{ currentProject.manager }}</span>
-              <el-tag size="small" :type="statusType(currentProject.status)">{{ currentProject.status }}</el-tag>
-            </div>
+            <span class="pd-name">{{ currentProject.projectName }}</span>
+            <span class="pd-meta">负责人：{{ currentProject.manager }}</span>
+            <el-tag size="small" :type="statusType(currentProject.status)">{{ currentProject.status }}</el-tag>
           </div>
           <div class="pd-header-right">
-            <div class="pd-received-label">已回款金额</div>
-            <div class="pd-received-num">¥{{ formatMoney(detailStats.totalReceipt) }}</div>
+            <span class="pd-received-label">已回款金额：</span>
+            <span class="pd-received-num">¥{{ formatMoney(detailStats.totalReceipt) }}</span>
           </div>
         </div>
 
@@ -196,6 +203,20 @@
                 <div class="s-value red">¥{{ formatMoney(detailStats.totalAdvance) }}</div>
               </div>
             </div>
+            <div class="summary-item border-cyan">
+              <div class="s-icon-wrap bg-cyan"><el-icon size="18"><Document /></el-icon></div>
+              <div class="s-content">
+                <div class="s-label">进项金额</div>
+                <div class="s-value cyan">¥{{ formatMoney(inputInvoiceStats?.totalAmount || 0) }}</div>
+              </div>
+            </div>
+            <div class="summary-item border-pink">
+              <div class="s-icon-wrap bg-pink"><el-icon size="18"><Document /></el-icon></div>
+              <div class="s-content">
+                <div class="s-label">销项金额</div>
+                <div class="s-value pink">¥{{ formatMoney(outputInvoiceStats?.totalAmount || 0) }}</div>
+              </div>
+            </div>
           </div>
 
           <!-- 进度条 -->
@@ -243,7 +264,7 @@
               </el-button>
             </div>
             <div class="table-wrapper">
-              <el-table :data="projectDetail.advances" style="width: 100%">
+              <el-table :data="pagedAdvances" style="width: 100%">
                 <el-table-column type="index" label="序号" width="60" align="center" />
                 <el-table-column prop="customerName" label="垫资主体" min-width="120" align="center" />
                 <el-table-column prop="amount" label="垫资金额" align="right" width="120">
@@ -264,6 +285,9 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="pagination-wrapper" v-if="(projectDetail.advances || []).length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="(projectDetail.advances || []).length" :page-size="pageSize" v-model:current-page="advancePage" />
+              </div>
             </div>
           </el-tab-pane>
 
@@ -279,7 +303,7 @@
               </el-button>
             </div>
             <div class="table-wrapper">
-              <el-table :data="projectDetail.expenses" style="width: 100%">
+              <el-table :data="pagedExpenses" style="width: 100%">
                 <el-table-column type="index" label="序号" width="60" align="center" />
                 <el-table-column prop="customerName" label="客户" min-width="120" align="center" />
                 <el-table-column prop="expenseName" label="支出名称" min-width="120" show-overflow-tooltip />
@@ -300,6 +324,9 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="pagination-wrapper" v-if="(projectDetail.expenses || []).length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="(projectDetail.expenses || []).length" :page-size="pageSize" v-model:current-page="expensePage" />
+              </div>
             </div>
           </el-tab-pane>
 
@@ -315,7 +342,7 @@
               </el-button>
             </div>
             <div class="table-wrapper">
-              <el-table :data="projectDetail.receipts" style="width: 100%">
+              <el-table :data="pagedReceipts" style="width: 100%">
                 <el-table-column type="index" label="序号" width="60" align="center" />
                 <el-table-column prop="customerName" label="客户" min-width="120" align="center" />
                 <el-table-column prop="receiptName" label="回款名称" min-width="120" show-overflow-tooltip />
@@ -336,6 +363,9 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="pagination-wrapper" v-if="(projectDetail.receipts || []).length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="(projectDetail.receipts || []).length" :page-size="pageSize" v-model:current-page="receiptPage" />
+              </div>
             </div>
           </el-tab-pane>
 
@@ -352,7 +382,7 @@
               <div style="margin-top: 12px; color: #909399;">暂无资金流水</div>
             </div>
             <div v-else class="flow-list">
-              <div v-for="(flow, index) in projectDetail.flows" :key="index" class="flow-item">
+              <div v-for="(flow, index) in pagedFlows" :key="index" class="flow-item">
                 <div :class="['flow-icon', getFlowTypeClass(flow.type)]">
                   <el-icon size="16">
                     <Money v-if="flow.type === 'receipt'" />
@@ -378,11 +408,157 @@
                   {{ flow.type === 'expense' ? '-' : flow.type === 'receipt' ? '+' : '' }}¥{{ formatMoney(flow.amount) }}
                 </div>
               </div>
+              <div class="pagination-wrapper" v-if="(projectDetail.flows || []).length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="(projectDetail.flows || []).length" :page-size="pageSize" v-model:current-page="flowPage" />
+              </div>
+            </div>
+          </el-tab-pane>
+
+          <!-- 备忘录Tab -->
+          <el-tab-pane label="备忘录" name="memos">
+            <div class="tab-header">
+              <div class="tab-header-left">
+                <h3 class="tab-title"><el-icon style="color: #e6a23c; margin-right: 6px;"><Notebook /></el-icon>备忘录</h3>
+                <div class="tab-subtitle">项目相关备忘记录</div>
+              </div>
+              <el-button type="primary" size="small" @click="showAddMemo">
+                <el-icon><Plus /></el-icon> 新增备忘
+              </el-button>
+            </div>
+            <div v-if="!projectDetail.memos || projectDetail.memos.length === 0" class="empty-state">
+              <el-icon size="48" color="#c0c4cc"><Notebook /></el-icon>
+              <div style="margin-top: 12px; color: #909399;">暂无备忘录</div>
+            </div>
+            <div v-else class="memo-list">
+              <div v-for="(memo, index) in projectDetail.memos" :key="index" class="memo-item">
+                <div class="memo-header">
+                  <div class="memo-title">{{ memo.title }}</div>
+                  <div class="memo-actions">
+                    <el-button size="small" text @click="showEditMemo(memo)">编辑</el-button>
+                    <el-button size="small" text type="danger" @click="handleDeleteMemo(memo.id)">删除</el-button>
+                  </div>
+                </div>
+                <div class="memo-content" v-html="memo.content"></div>
+                <div class="memo-meta">
+                  <el-icon size="12"><User /></el-icon> {{ memo.operator || '管理员' }} · {{ formatTime(memo.updateTime) }}
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+
+          <!-- 销项Tab -->
+          <el-tab-pane label="销项" name="outputInvoices">
+            <div class="tab-header">
+              <div class="tab-header-left">
+                <h3 class="tab-title"><el-icon style="color: #e6a23c; margin-right: 6px;"><Document /></el-icon>销项发票</h3>
+                <div class="tab-subtitle">合计金额：<strong style="color: #67c23a;">¥{{ formatMoney(outputInvoiceStats?.totalAmount || 0) }}</strong>，税额：<strong style="color: #f56c6c;">¥{{ formatMoney(outputInvoiceStats?.totalTax || 0) }}</strong></div>
+              </div>
+              <el-button type="primary" size="small" @click="showAddOutputInvoice">
+                <el-icon><Plus /></el-icon> 新增销项
+              </el-button>
+            </div>
+            <div class="table-wrapper">
+              <el-table :data="pagedOutputInvoices" style="width: 100%" border>
+                <el-table-column type="index" label="序号" width="60" align="center" />
+                <el-table-column prop="code" label="发票代码" min-width="120" align="center" show-overflow-tooltip />
+                <el-table-column prop="number" label="发票号码" min-width="150" align="center" show-overflow-tooltip />
+                <el-table-column prop="buyerName" label="购买方" min-width="150" align="center" show-overflow-tooltip />
+                <el-table-column prop="date" label="开票日期" width="110" align="center" />
+                <el-table-column prop="amount" label="不含税金额" align="right" width="120">
+                  <template #default="{ row }">¥{{ formatMoney(row.amount) }}</template>
+                </el-table-column>
+                <el-table-column prop="tax" label="税额" align="right" width="100">
+                  <template #default="{ row }">¥{{ formatMoney(row.tax) }}</template>
+                </el-table-column>
+                <el-table-column prop="total" label="价税合计" align="right" width="120">
+                  <template #default="{ row }">¥{{ formatMoney(row.total) }}</template>
+                </el-table-column>
+                <el-table-column prop="status" label="状态" width="90" align="center">
+                  <template #default="{ row }">
+                    <el-tag :type="row.status === '正常' ? 'success' : row.status === '红冲' ? 'danger' : 'info'" size="small">{{ row.status }}</el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrapper" v-if="outputInvoices.length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="outputInvoices.length" :page-size="pageSize" v-model:current-page="outputInvoicePage" />
+              </div>
+            </div>
+          </el-tab-pane>
+
+          <!-- 进项Tab -->
+          <el-tab-pane label="进项" name="inputInvoices">
+            <div class="tab-header">
+              <div class="tab-header-left">
+                <h3 class="tab-title"><el-icon style="color: #409eff; margin-right: 6px;"><Document /></el-icon>进项发票</h3>
+                <div class="tab-subtitle">合计金额：<strong style="color: #67c23a;">¥{{ formatMoney(inputInvoiceStats?.totalAmount || 0) }}</strong>，税额：<strong style="color: #f56c6c;">¥{{ formatMoney(inputInvoiceStats?.totalTax || 0) }}</strong></div>
+              </div>
+              <el-button type="primary" size="small" @click="showAddInputInvoice">
+                <el-icon><Plus /></el-icon> 新增进项
+              </el-button>
+            </div>
+            <div class="table-wrapper">
+              <el-table :data="pagedInputInvoices" style="width: 100%" border>
+                <el-table-column type="index" label="序号" width="60" align="center" />
+                <el-table-column prop="code" label="发票代码" min-width="120" align="center" show-overflow-tooltip />
+                <el-table-column prop="number" label="发票号码" min-width="150" align="center" show-overflow-tooltip />
+                <el-table-column prop="sellerName" label="销售方" min-width="150" align="center" show-overflow-tooltip />
+                <el-table-column prop="date" label="开票日期" width="110" align="center" />
+                <el-table-column prop="amount" label="不含税金额" align="right" width="120">
+                  <template #default="{ row }">¥{{ formatMoney(row.amount) }}</template>
+                </el-table-column>
+                <el-table-column prop="tax" label="税额" align="right" width="100">
+                  <template #default="{ row }">¥{{ formatMoney(row.tax) }}</template>
+                </el-table-column>
+                <el-table-column prop="total" label="价税合计" align="right" width="120">
+                  <template #default="{ row }">¥{{ formatMoney(row.total) }}</template>
+                </el-table-column>
+                <el-table-column prop="status" label="状态" width="90" align="center">
+                  <template #default="{ row }">
+                    <el-tag :type="row.status === '已认证' ? 'success' : row.status === '不可抵扣' ? 'danger' : 'info'" size="small">{{ row.status }}</el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrapper" v-if="inputInvoices.length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="inputInvoices.length" :page-size="pageSize" v-model:current-page="inputInvoicePage" />
+              </div>
             </div>
           </el-tab-pane>
         </el-tabs>
         </div>
       </div>
+    </el-dialog>
+
+    <!-- 关联发票对话框 -->
+    <el-dialog v-model="invoiceFormVisible" :title="invoiceFormType === 'output' ? '关联销项发票' : '关联进项发票'" width="500px">
+      <el-form label-width="80px">
+        <el-form-item label="选择发票">
+          <el-select v-model="selectedInvoiceId" filterable remote :remote-method="searchInvoicesForProject" :loading="invoiceSearchLoading" placeholder="输入发票号搜索..." style="width: 100%" @change="onProjectInvoiceSelect">
+            <el-option v-for="inv in projectInvoiceOptions" :key="inv.id" :label="inv.number + ' - ' + (inv.buyerName || inv.sellerName || '')" :value="inv.id">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>{{ inv.number }}</span>
+                <span style="color: #999; font-size: 12px;">¥{{ formatMoney(inv.total) }}</span>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="selectedInvoice" label="发票信息">
+          <div style="padding: 12px; background: #f5f7fa; border-radius: 8px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span><strong>发票号：</strong>{{ selectedInvoice.number }}</span>
+              <span><strong>日期：</strong>{{ selectedInvoice.date }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span><strong>金额：</strong>¥{{ formatMoney(selectedInvoice.amount) }}</span>
+              <span><strong>税额：</strong>¥{{ formatMoney(selectedInvoice.tax) }}</span>
+              <span><strong>合计：</strong>¥{{ formatMoney(selectedInvoice.total) }}</span>
+            </div>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="invoiceFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveInvoiceForm" :disabled="!selectedInvoice">确认关联</el-button>
+      </template>
     </el-dialog>
 
     <!-- 新增垫资/支出/回款表单 -->
@@ -437,14 +613,36 @@
         <el-button type="primary" @click="saveFlowForm">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 备忘录表单 -->
+    <el-dialog v-model="memoFormVisible" :title="isEditMemo ? '编辑备忘' : '新增备忘'" width="700px" @opened="handleMemoDialogOpened">
+      <el-form :model="memoForm" label-width="80px">
+        <el-form-item label="标题">
+          <el-input v-model="memoForm.title" placeholder="请输入标题" />
+        </el-form-item>
+        <el-form-item label="内容">
+          <div style="border: 1px solid #dcdfe6; border-radius: 4px;">
+            <Toolbar :editor="memoEditor" :defaultConfig="toolbarConfig" style="border-bottom: 1px solid #dcdfe6;" />
+            <Editor :defaultConfig="editorConfig" v-model="memoForm.content" style="height: 250px;" @onCreated="handleEditorCreated" />
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="memoFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveMemoForm">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, ArrowDown, Document, Money, DataAnalysis } from '@element-plus/icons-vue'
+import { Plus, ArrowDown, Document, Money, DataAnalysis, Notebook, User, Download } from '@element-plus/icons-vue'
+import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
+import '@wangeditor/editor/dist/css/style.css'
 import api from '../api/index'
+import axios from 'axios'
 import { InvoiceApi } from '../api/invoice'
 
 const loading = ref(false)
@@ -481,6 +679,38 @@ const statusType = (status) => {
 }
 
 let loadDataTimer = null
+const exportData = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const tenantId = localStorage.getItem('tenantId')
+    const res = await axios.get('http://finance.52youran.top/api/projects/export', {
+      responseType: 'blob',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'X-Tenant-Id': tenantId
+      }
+    })
+    const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    const now = new Date()
+    const timestamp = now.getFullYear().toString() +
+      (now.getMonth() + 1).toString().padStart(2, '0') +
+      now.getDate().toString().padStart(2, '0') + '_' +
+      now.getHours().toString().padStart(2, '0') +
+      now.getMinutes().toString().padStart(2, '0') +
+      now.getSeconds().toString().padStart(2, '0')
+    link.download = '项目数据导出_' + timestamp + '.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+    console.error(e)
+  }
+}
+
 const loadData = async () => {
   if (loadDataTimer) return
   loadDataTimer = setTimeout(() => { loadDataTimer = null }, 100)
@@ -552,7 +782,7 @@ const handleSave = async () => {
 
 const detailVisible = ref(false)
 const currentProject = ref(null)
-const projectDetail = ref({ advances: [], expenses: [], receipts: [], flows: [], relatedInvoiceNos: [] })
+const projectDetail = ref({ advances: [], expenses: [], receipts: [], flows: [], memos: [], relatedInvoiceNos: [] })
 const detailTab = ref('overview')
 
 const detailStats = reactive({
@@ -562,6 +792,47 @@ const detailStats = reactive({
   totalReceipt: 0,
   receiptedAmount: 0,
   balance: 0
+})
+
+// 分页状态
+const advancePage = ref(1)
+const expensePage = ref(1)
+const receiptPage = ref(1)
+const flowPage = ref(1)
+const outputInvoicePage = ref(1)
+const inputInvoicePage = ref(1)
+const pageSize = ref(10)
+
+// 发票数据
+const outputInvoices = ref([])
+const inputInvoices = ref([])
+const outputInvoiceStats = reactive({ totalAmount: 0, totalTax: 0 })
+const inputInvoiceStats = reactive({ totalAmount: 0, totalTax: 0 })
+
+// 分页数据
+const pagedAdvances = computed(() => {
+  const start = (advancePage.value - 1) * pageSize.value
+  return (projectDetail.value.advances || []).slice(start, start + pageSize.value)
+})
+const pagedExpenses = computed(() => {
+  const start = (expensePage.value - 1) * pageSize.value
+  return (projectDetail.value.expenses || []).slice(start, start + pageSize.value)
+})
+const pagedReceipts = computed(() => {
+  const start = (receiptPage.value - 1) * pageSize.value
+  return (projectDetail.value.receipts || []).slice(start, start + pageSize.value)
+})
+const pagedFlows = computed(() => {
+  const start = (flowPage.value - 1) * pageSize.value
+  return (projectDetail.value.flows || []).slice(start, start + pageSize.value)
+})
+const pagedOutputInvoices = computed(() => {
+  const start = (outputInvoicePage.value - 1) * pageSize.value
+  return outputInvoices.value.slice(start, start + pageSize.value)
+})
+const pagedInputInvoices = computed(() => {
+  const start = (inputInvoicePage.value - 1) * pageSize.value
+  return inputInvoices.value.slice(start, start + pageSize.value)
 })
 
 const expenseProgress = computed(() => {
@@ -587,6 +858,99 @@ const flowForm = reactive({
   summary: ''
 })
 
+// 备忘录相关
+const memoFormVisible = ref(false)
+const isEditMemo = ref(false)
+const memoForm = reactive({
+  id: null,
+  title: '',
+  content: ''
+})
+
+// 富文本编辑器配置
+const memoEditor = shallowRef(null)
+const toolbarConfig = {
+  excludeKeys: ['fullScreen', 'group-video']
+}
+const editorConfig = {
+  placeholder: '请输入备忘内容...',
+  MENU_CONF: {
+    uploadImage: {
+      disabled: true
+    }
+  }
+}
+
+const handleEditorCreated = (editor) => {
+  memoEditor.value = editor
+}
+
+onBeforeUnmount(() => {
+  const editor = memoEditor.value
+  if (editor) editor.destroy()
+})
+
+const showAddMemo = () => {
+  isEditMemo.value = false
+  Object.assign(memoForm, { id: null, title: '', content: '' })
+  memoFormVisible.value = true
+}
+
+const showEditMemo = (memo) => {
+  isEditMemo.value = true
+  Object.assign(memoForm, { id: memo.id, title: memo.title, content: memo.content || '' })
+  memoFormVisible.value = true
+}
+
+const handleMemoDialogOpened = () => {
+  // dialog打开后设置编辑器内容
+  if (memoEditor.value) {
+    memoEditor.value.setHtml(memoForm.content || '')
+  }
+}
+
+const saveMemoForm = async () => {
+  if (!memoForm.title) {
+    ElMessage.warning('请输入标题')
+    return
+  }
+  // 从编辑器获取内容
+  if (memoEditor.value) {
+    memoForm.content = memoEditor.value.getHtml()
+  }
+  try {
+    if (isEditMemo.value) {
+      await api.put(`/project-details/memos/${memoForm.id}`, memoForm)
+      ElMessage.success('更新成功')
+    } else {
+      await api.post(`/project-details/${currentProject.value.id}/memos`, memoForm)
+      ElMessage.success('保存成功')
+    }
+    memoFormVisible.value = false
+    // 刷新数据但不重置Tab
+    const data = await api.get(`/project-details/${currentProject.value.id}`)
+    projectDetail.value = data || { advances: [], expenses: [], receipts: [], flows: [], memos: [] }
+  } catch (e) {
+    ElMessage.error('保存失败')
+  }
+}
+
+const handleDeleteMemo = async (id) => {
+  await ElMessageBox.confirm('确认删除该备忘录？', '提示', { type: 'warning' })
+  try {
+    await api.delete(`/project-details/memos/${id}`)
+    ElMessage.success('删除成功')
+    showDetail(currentProject.value)
+  } catch (e) {
+    ElMessage.error('删除失败')
+  }
+}
+
+const formatTime = (time) => {
+  if (!time) return ''
+  return time.replace('T', ' ').slice(0, 16)
+}
+
 const invoiceLoading = ref(false)
 const invoiceOptions = ref([])
 
@@ -597,14 +961,15 @@ const searchInvoices = async (query) => {
   }
   invoiceLoading.value = true
   try {
-    // 获取所有发票，过滤出包含搜索关键词的，并排除已关联的
+    // 获取所有发票，过滤出包含搜索关键词的
     const allInvoices = await InvoiceApi.list()
-    const relatedNos = projectDetail.value.relatedInvoiceNos || []
+    // 使用跨项目关联的发票号进行过滤（不能跨项目关联）
+    const allRelatedNos = projectDetail.value.allRelatedInvoiceNos || []
     invoiceOptions.value = (allInvoices || []).filter(inv =>
       (inv.number && inv.number.includes(query)) ||
       (inv.buyerName && inv.buyerName.includes(query)) ||
       (inv.sellerName && inv.sellerName.includes(query))
-    ).filter(inv => !relatedNos.includes(inv.number)).slice(0, 20)
+    ).filter(inv => !allRelatedNos.includes(inv.number)).slice(0, 20)
   } catch (e) {
     console.error(e)
   }
@@ -692,12 +1057,15 @@ const saveFlowForm = async () => {
 
     if (isEdit) {
       await api.put(url, data)
+      ElMessage.success('更新成功')
     } else {
       await api.post(url, data)
+      ElMessage.success('保存成功')
     }
-    ElMessage.success('保存成功')
     flowFormVisible.value = false
-    showDetail(currentProject.value)
+    // 刷新数据但不重置Tab
+    const data2 = await api.get(`/project-details/${currentProject.value.id}`)
+    projectDetail.value = data2 || { advances: [], expenses: [], receipts: [], flows: [], memos: [] }
   } catch (e) {
     ElMessage.error('保存失败')
   }
@@ -710,7 +1078,7 @@ const showDetail = async (row) => {
 
   try {
     const data = await api.get(`/project-details/${row.id}`)
-    projectDetail.value = data || { advances: [], expenses: [], receipts: [], flows: [] }
+    projectDetail.value = data || { advances: [], expenses: [], receipts: [], flows: [], memos: [] }
 
     // 计算统计
     detailStats.totalAdvance = projectDetail.value.advances.reduce((sum, a) => sum + Number(a.amount || 0), 0)
@@ -719,8 +1087,99 @@ const showDetail = async (row) => {
     detailStats.totalReceipt = projectDetail.value.receipts.reduce((sum, r) => sum + Number(r.amount || 0), 0)
     detailStats.receiptedAmount = detailStats.totalReceipt
     detailStats.balance = (currentProject.value.receiveContractAmount || 0) - detailStats.paidAmount
+
+    // 加载关联发票
+    loadProjectInvoices(row.id)
   } catch (e) {
     console.error(e)
+  }
+}
+
+const loadProjectInvoices = async (projectId) => {
+  try {
+    const invoices = await api.get(`/project-details/${projectId}/invoices`)
+    outputInvoices.value = (invoices || []).filter(inv => inv.type === 'output')
+    inputInvoices.value = (invoices || []).filter(inv => inv.type === 'input')
+
+    // 计算统计
+    outputInvoiceStats.totalAmount = outputInvoices.value.reduce((sum, i) => sum + Number(i.amount || 0), 0)
+    outputInvoiceStats.totalTax = outputInvoices.value.reduce((sum, i) => sum + Number(i.tax || 0), 0)
+    inputInvoiceStats.totalAmount = inputInvoices.value.reduce((sum, i) => sum + Number(i.amount || 0), 0)
+    inputInvoiceStats.totalTax = inputInvoices.value.reduce((sum, i) => sum + Number(i.tax || 0), 0)
+  } catch (e) {
+    console.error('加载发票数据失败:', e)
+  }
+}
+
+// 关联发票相关
+const invoiceFormVisible = ref(false)
+const invoiceFormType = ref('output') // output=销项, input=进项
+const selectedInvoiceId = ref(null)
+const selectedInvoice = ref(null)
+const projectInvoiceOptions = ref([])
+const invoiceSearchLoading = ref(false)
+
+const showAddOutputInvoice = () => {
+  invoiceFormType.value = 'output'
+  selectedInvoiceId.value = null
+  selectedInvoice.value = null
+  projectInvoiceOptions.value = []
+  invoiceFormVisible.value = true
+  // 自动加载发票列表
+  searchInvoicesForProject('')
+}
+
+const showAddInputInvoice = () => {
+  invoiceFormType.value = 'input'
+  selectedInvoiceId.value = null
+  selectedInvoice.value = null
+  projectInvoiceOptions.value = []
+  invoiceFormVisible.value = true
+  // 自动加载发票列表
+  searchInvoicesForProject('')
+}
+
+const searchInvoicesForProject = async (query) => {
+  invoiceSearchLoading.value = true
+  try {
+    // 获取所有发票
+    const allInvoices = query
+      ? await api.get('/invoices', { params: { search: query } })
+      : await api.get('/invoices')
+    // 获取当前项目已关联的发票ID
+    const relatedInvoices = await api.get(`/project-details/${currentProject.value.id}/invoices`)
+    const relatedIds = (relatedInvoices || []).map(inv => inv.id)
+
+    // 筛选对应类型且未关联的发票
+    projectInvoiceOptions.value = (allInvoices || []).filter(inv =>
+      inv.type === invoiceFormType.value && !relatedIds.includes(inv.id)
+    )
+  } catch (e) {
+    console.error(e)
+  }
+  invoiceSearchLoading.value = false
+}
+
+const onProjectInvoiceSelect = (invoiceId) => {
+  selectedInvoice.value = projectInvoiceOptions.value.find(inv => inv.id === invoiceId) || null
+}
+
+const saveInvoiceForm = async () => {
+  if (!selectedInvoice.value) {
+    ElMessage.warning('请选择发票')
+    return
+  }
+  try {
+    await api.post(`/project-details/${currentProject.value.id}/invoices`, {
+      invoiceId: selectedInvoice.value.id,
+      invoiceType: invoiceFormType.value
+    })
+    ElMessage.success('关联成功')
+    invoiceFormVisible.value = false
+    // 刷新数据
+    loadProjectInvoices(currentProject.value.id)
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error || '关联失败')
   }
 }
 
@@ -845,7 +1304,7 @@ onMounted(() => {
 .pd-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 10px;
-  padding: 22px 24px;
+  padding: 16px 20px;
   margin-bottom: 20px;
   color: #fff;
   display: flex;
@@ -855,41 +1314,59 @@ onMounted(() => {
 
 .pd-header-left {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .pd-header-left .pd-name {
   font-size: 18px;
   font-weight: 700;
+  margin-right: 4px;
 }
 
 .pd-header-left .pd-meta {
+  font-size: 12px;
+  opacity: 0.9;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.pd-header-left .el-tag {
+  font-size: 12px;
+}
+
+.pd-header-left .pd-received-label {
   font-size: 13px;
   opacity: 0.85;
-  display: flex;
-  gap: 20px;
-  align-items: center;
+}
+
+.pd-header-left .pd-received-num {
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .pd-header-right {
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .pd-header-right .pd-received-label {
-  font-size: 12px;
-  opacity: 0.75;
+  font-size: 13px;
+  opacity: 0.85;
 }
 
 .pd-header-right .pd-received-num {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
-  margin-top: 2px;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -960,6 +1437,28 @@ onMounted(() => {
   border-radius: 10px 0 0 10px;
 }
 
+.summary-item.border-cyan::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #00d4ff;
+  border-radius: 10px 0 0 10px;
+}
+
+.summary-item.border-pink::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #ff6b9d;
+  border-radius: 10px 0 0 10px;
+}
+
 .s-icon-wrap {
   width: 36px;
   height: 36px;
@@ -975,6 +1474,8 @@ onMounted(() => {
 .s-icon-wrap.bg-orange { background: #fdf6ec; color: #e6a23c; }
 .s-icon-wrap.bg-purple { background: #f4f4f5; color: #909399; }
 .s-icon-wrap.bg-red { background: #fef0f0; color: #f56c6c; }
+.s-icon-wrap.bg-cyan { background: #e0f7ff; color: #00b4d8; }
+.s-icon-wrap.bg-pink { background: #ffe0eb; color: #ff6b9d; }
 
 .s-label {
   font-size: 12px;
@@ -992,6 +1493,8 @@ onMounted(() => {
 .s-value.orange { color: #e6a23c; }
 .s-value.purple { color: #909399; }
 .s-value.red { color: #f56c6c; }
+.s-value.cyan { color: #00b4d8; }
+.s-value.pink { color: #ff6b9d; }
 
 /* 区域框样式 */
 .section-box {
@@ -1232,5 +1735,142 @@ onMounted(() => {
 
 .flow-amount.adv {
   color: #e6a23c;
+}
+
+/* 备忘录样式 */
+.memo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.memo-item {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+.memo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.memo-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.memo-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.memo-content {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-bottom: 8px;
+}
+
+.memo-meta {
+  font-size: 12px;
+  color: #909399;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 表格列宽自适应 */
+:deep(.el-table) {
+  width: 100% !important;
+}
+
+:deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+}
+
+:deep(.el-table th .cell) {
+  text-align: center;
+}
+
+:deep(.el-table td .cell) {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.clickable-text {
+  color: #409eff;
+  cursor: pointer;
+}
+
+.clickable-text:hover {
+  color: #66b1ff;
+  text-decoration: underline;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-text-color: #606266;
+  --el-pagination-button-bg-color: #fff;
+  --el-pagination-hover-color: #409eff;
+}
+
+:deep(.el-pagination .el-pager li) {
+  border-radius: 8px;
+  margin: 0 3px;
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: 1px solid #e4e7ed;
+}
+
+:deep(.el-pagination .el-pager li:hover) {
+  color: #409eff;
+  border-color: #409eff;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  color: #fff;
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+}
+
+:deep(.el-pagination .btn-prev, .el-pagination .btn-next) {
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+  background: #fff;
+}
+
+:deep(.el-pagination .btn-prev:hover, .el-pagination .btn-next:hover) {
+  color: #409eff;
+  border-color: #409eff;
+}
+
+:deep(.el-pagination__total) {
+  color: #909399;
+  font-size: 13px;
+}
+
+:deep(.el-pagination .btn-prev, .el-pagination .btn-next) {
+  border-radius: 6px;
 }
 </style>

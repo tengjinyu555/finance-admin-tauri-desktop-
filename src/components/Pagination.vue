@@ -1,6 +1,14 @@
 <template>
   <div class="pagination-bar">
-    <div class="page-info">共 <strong>{{ total }}</strong> 条</div>
+    <div class="page-info">
+      共 <strong>{{ total }}</strong> 条
+      <el-select v-model="currentPageSize" size="small" style="width: 100px; margin-left: 10px;" @change="onPageSizeChange">
+        <el-option :value="10" label="10条/页" />
+        <el-option :value="20" label="20条/页" />
+        <el-option :value="50" label="50条/页" />
+        <el-option :value="100" label="100条/页" />
+      </el-select>
+    </div>
     <div class="page-controls">
       <button class="page-btn" @click="changePage(1)" :disabled="currentPage === 1">
         <el-icon><DArrowLeft /></el-icon>
@@ -20,7 +28,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -29,14 +37,25 @@ const props = defineProps({
   pageSize: { type: Number, default: 10 }
 })
 
-const emit = defineEmits(['update:currentPage'])
+const emit = defineEmits(['update:currentPage', 'update:pageSize'])
 
-const totalPages = computed(() => Math.ceil(props.total / props.pageSize) || 1)
+const currentPageSize = ref(props.pageSize)
+
+watch(() => props.pageSize, (val) => {
+  currentPageSize.value = val
+})
+
+const totalPages = computed(() => Math.ceil(props.total / currentPageSize.value) || 1)
 
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     emit('update:currentPage', page)
   }
+}
+
+const onPageSizeChange = (val) => {
+  emit('update:pageSize', val)
+  emit('update:currentPage', 1)
 }
 </script>
 

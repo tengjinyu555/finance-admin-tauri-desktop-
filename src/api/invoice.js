@@ -35,11 +35,6 @@ export const FileApi = {
   }
 }
 
-// 仪表盘 API
-export const DashboardApi = {
-  summary: () => api.get('/dashboard/summary')
-}
-
 // 租户 API
 export const TenantApi = {
   search: (keyword) => api.get('/tenants/search', { params: { keyword } }),
@@ -48,10 +43,17 @@ export const TenantApi = {
 
 // 认证 API
 export const AuthApi = {
-  login: (data, tenantId) => api.post('/auth/login', data, { headers: { 'X-Tenant-Id': tenantId } }),
+  login: (data, tenantId) => {
+    const headers = {}
+    if (tenantId) headers['X-Tenant-Id'] = tenantId
+    return api.post('/auth/login', data, { headers })
+  },
   register: (data, tenantId) => api.post('/auth/register', data, { headers: { 'X-Tenant-Id': tenantId } }),
   refresh: () => api.post('/auth/refresh'),
-  verifyPassword: (data, tenantId) => api.post('/auth/verify-password', data, { headers: { 'X-Tenant-Id': tenantId } })
+  verifyPassword: (data, tenantId) => api.post('/auth/verify-password', data, { headers: { 'X-Tenant-Id': tenantId } }),
+  changePassword: (data, tenantId) => api.post('/auth/change-password', data, { headers: { 'X-Tenant-Id': tenantId } }),
+  getUserTenants: () => api.get('/auth/user-tenants'),
+  switchTenant: (tenantId) => api.post('/auth/switch-tenant', { tenantId })
 }
 
 // 用户管理 API

@@ -12,11 +12,13 @@ export const useUserStore = defineStore('user', () => {
     const data = await AuthApi.login({ username, password }, tenantIdValue)
     user.value = data
     token.value = data.token
-    tenantId.value = tenantIdValue
+    tenantId.value = data.tenantId || tenantIdValue
     myTaxNo.value = data.taxNo || ''
     localStorage.setItem('user', JSON.stringify(data))
     localStorage.setItem('token', data.token)
-    localStorage.setItem('tenantId', tenantIdValue)
+    localStorage.setItem('tenantId', data.tenantId || tenantIdValue)
+    // 登录成功后重置跳转标志
+    window.__isRedirectingToLogin = false
     return data
   }
 

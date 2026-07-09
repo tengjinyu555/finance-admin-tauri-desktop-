@@ -34,10 +34,10 @@
     <!-- 项目概览 -->
     <el-card class="section-card">
       <template #header>
-        <div class="card-header">
+        <div class="card-header" style="justify-content: space-between;">
           <span class="card-title"><el-icon style="margin-right: 6px;"><Folder /></el-icon>项目概览</span>
           <el-button type="primary" link @click="goToProject">
-            查看详情 <el-icon><ArrowRight /></el-icon>
+            查看更多 <el-icon><ArrowRight /></el-icon>
           </el-button>
         </div>
       </template>
@@ -50,7 +50,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="manager" label="负责人" width="100" align="center" />
-        <el-table-column prop="budget" label="预算金额" align="right" width="150" :show-overflow-tooltip="true">
+        <el-table-column prop="budget" label="预算金额" align="center" width="150" :show-overflow-tooltip="true">
           <template #default="{ row }"><span style="white-space: nowrap">¥{{ formatMoney(row.budget) }}</span></template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
@@ -231,6 +231,10 @@ onMounted(async () => {
 }
 
 :deep(.el-table th) {
+  text-align: center;
+}
+
+:deep(.el-table td .cell) {
   text-align: center;
 }
 </style>

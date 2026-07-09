@@ -16,8 +16,8 @@
 
     <el-table :data="tableData" border v-loading="loading" header-cell-class-name="header-center" cell-class-name="cell-center" style="width: 100%" :header-cell-style="{ padding: '8px 0' }" :cell-style="{ padding: '6px 0' }">
       <el-table-column type="index" label="序号" width="60" align="center" />
-      <el-table-column prop="supplierId" label="客户ID" width="110" show-overflow-tooltip />
-      <el-table-column prop="name" label="名称" width="180" show-overflow-tooltip>
+      <el-table-column prop="supplierId" label="客户编号" min-width="150" align="center" />
+      <el-table-column prop="name" label="名称" min-width="200" align="center">
         <template #default="{ row }">
           <strong>{{ row.name }}</strong>
         </template>
@@ -29,11 +29,11 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="taxType" label="纳税人类型" width="110" show-overflow-tooltip />
-      <el-table-column prop="creditCode" label="统一社会信用代码" width="200" show-overflow-tooltip />
-      <el-table-column prop="bankName" label="开户行" width="180" show-overflow-tooltip />
-      <el-table-column prop="contactPerson" label="联系人" width="90" show-overflow-tooltip />
-      <el-table-column prop="phone" label="电话" width="120" show-overflow-tooltip />
+      <el-table-column prop="taxType" label="纳税人类型" min-width="120" align="center" />
+      <el-table-column prop="creditCode" label="统一社会信用代码" min-width="220" align="center" />
+      <el-table-column prop="bankName" label="开户行" min-width="200" align="center" />
+      <el-table-column prop="contactPerson" label="联系人" min-width="100" align="center" />
+      <el-table-column prop="phone" label="电话" min-width="130" align="center" />
       <el-table-column label="操作" width="130" fixed="right" align="center">
         <template #default="{ row }">
           <div class="btn-group">
@@ -54,7 +54,7 @@
     <!-- 新增/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑客户' : '新增客户'" width="500px">
       <el-form :model="formData" label-width="100px">
-        <el-form-item label="客户编码">
+        <el-form-item label="客户编号">
           <el-input v-model="formData.supplierId" :disabled="isEdit" />
         </el-form-item>
         <el-form-item label="名称">
@@ -230,5 +230,6 @@ onMounted(loadData)
 }
 :deep(.cell-center .cell) {
   text-align: center;
+  white-space: nowrap;
 }
 </style>

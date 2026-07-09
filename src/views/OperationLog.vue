@@ -5,7 +5,7 @@
         <div class="flex-between">
           <span>操作日志</span>
           <div class="btn-group">
-            <el-select v-model="filterModule" placeholder="全部模块" clearable style="width: 120px" @change="loadData">
+            <el-select v-model="filterModule" placeholder="全部模块" clearable style="width: 120px" @change="handleFilterChange">
               <el-option label="客户" value="客户" />
               <el-option label="项目" value="项目" />
               <el-option label="发票" value="发票" />
@@ -15,7 +15,7 @@
               <el-option label="员工" value="员工" />
               <el-option label="登录" value="登录" />
             </el-select>
-            <el-select v-model="filterAction" placeholder="全部操作" clearable style="width: 120px" @change="loadData">
+            <el-select v-model="filterAction" placeholder="全部操作" clearable style="width: 120px" @change="handleFilterChange">
               <el-option label="新增" value="新增" />
               <el-option label="编辑" value="编辑" />
               <el-option label="删除" value="删除" />
@@ -52,13 +52,14 @@
         :current-page="currentPage"
         :page-size="pageSize"
         @update:currentPage="currentPage = $event"
+        @update:pageSize="pageSize = $event"
       />
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import api from '../api/index'
 import Pagination from '../components/Pagination.vue'
 
@@ -67,7 +68,7 @@ const tableData = ref([])
 const filterModule = ref('')
 const filterAction = ref('')
 const currentPage = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(10)
 const total = ref(0)
 
 const getActionType = (action) => {
@@ -83,25 +84,37 @@ const formatTime = (time) => {
 const loadData = async () => {
   loading.value = true
   try {
-    let logs
+    let url = '/operation-logs'
+    let params = {
+      page: currentPage.value - 1,
+      size: pageSize.value
+    }
+
     if (filterModule.value) {
-      logs = await api.get(`/operation-logs/module/${filterModule.value}`)
-    } else {
-      logs = await api.get('/operation-logs')
+      params.module = filterModule.value
     }
-
-    // 按操作类型筛选
     if (filterAction.value) {
-      logs = logs.filter(log => log.action === filterAction.value)
+      params.action = filterAction.value
     }
 
-    tableData.value = logs
-    total.value = logs.length
+    const result = await api.get(url, { params })
+
+    tableData.value = result.records || []
+    total.value = result.total || 0
   } catch (e) {
     console.error(e)
   }
   loading.value = false
 }
+
+const handleFilterChange = () => {
+  currentPage.value = 1
+  loadData()
+}
+
+watch([currentPage, pageSize], () => {
+  loadData()
+})
 
 onMounted(() => {
   loadData()

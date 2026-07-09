@@ -49,27 +49,6 @@
           <el-tabs v-model="activeTab">
             <el-tab-pane label="登录" name="login">
               <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef" label-position="top" @submit.prevent="handleLogin">
-                <el-form-item label="所属企业" required>
-                  <el-select
-                    v-model="loginForm.tenantId"
-                    filterable
-                    remote
-                    :remote-method="searchTenant"
-                    :loading="tenantLoading"
-                    placeholder="输入企业名称搜索..."
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="t in tenantList"
-                      :key="t.id"
-                      :label="t.name"
-                      :value="t.id"
-                    >
-                      <span>{{ t.name }}</span>
-                      <span style="float: right; color: #999; font-size: 12px">{{ t.code }}</span>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
                 <el-form-item label="用户名" prop="username">
                   <el-input v-model="loginForm.username" placeholder="请输入用户名" :prefix-icon="User" />
                 </el-form-item>
@@ -212,21 +191,13 @@ const searchTenant = async (query) => {
 }
 
 const handleLogin = async () => {
-  if (!loginForm.tenantId) {
-    ElMessage.warning('请选择企业')
-    return
-  }
   await loginFormRef.value.validate()
   loading.value = true
   try {
-    await userStore.login(loginForm.username, loginForm.password, loginForm.tenantId)
+    await userStore.login(loginForm.username, loginForm.password, null)
     // 记住密码
     if (rememberMe.value) {
-      const selectedTenant = tenantList.value.find(t => t.id === loginForm.tenantId)
       localStorage.setItem('rememberedLogin', JSON.stringify({
-        tenantId: loginForm.tenantId,
-        tenantName: selectedTenant?.name || '',
-        tenantCode: selectedTenant?.code || '',
         username: loginForm.username,
         password: loginForm.password
       }))
