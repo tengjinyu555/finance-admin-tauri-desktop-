@@ -9,7 +9,7 @@ function createWindow() {
     height: 900,
     minWidth: 1000,
     minHeight: 700,
-    title: '财税管理平台',
+    title: '业财一体化管理',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true

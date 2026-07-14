@@ -32,7 +32,7 @@
   },
   "build": {
     "appId": "com.finance.admin",
-    "productName": "财税管理平台",
+    "productName": "业财一体化管理",
     "directories": {
       "output": "dist-electron"
     },
@@ -41,7 +41,7 @@
       "dist/**/*"
     ],
     "win": {
-      "icon": "build/icon_256.png",
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "portable",

@@ -21,7 +21,7 @@
             <span class="logo-text">税</span>
           </div>
           <div class="brand-title">
-            <span class="brand-name">财税管理平台</span>
+            <span class="brand-name">业财一体化管理</span>
             <span class="brand-subtitle">FINANCE ADMIN PLATFORM</span>
           </div>
         </div>
@@ -71,20 +71,63 @@
           </el-form>
 
           <div class="login-footer">
-            <span>财税管理平台</span>
+            <span>业财一体化管理</span>
+            <div style="margin-top: 12px;">
+              <el-button type="primary" link @click="registerDialogVisible = true">免费注册</el-button>
+            </div>
           </div>
         </el-card>
       </div>
     </div>
   </div>
+
+  <!-- 注册对话框 -->
+  <el-dialog v-model="registerDialogVisible" width="420px" destroy-on-close :show-close="true" class="register-dialog">
+    <div class="register-container">
+      <div class="register-header">
+        <div class="register-logo">
+          <span class="logo-text">业</span>
+        </div>
+        <h2>免费注册</h2>
+        <p>创建您的账号，开始使用业财一体化管理</p>
+      </div>
+
+      <el-form :model="registerForm" :rules="registerRules" ref="registerFormRef" label-position="top" class="register-form">
+        <el-form-item label="企业/个人名称" prop="tenantName">
+          <el-input v-model="registerForm.tenantName" placeholder="请输入企业或个人名称" :prefix-icon="OfficeBuilding" />
+        </el-form-item>
+        <el-form-item label="管理员账号" prop="username">
+          <el-input v-model="registerForm.username" placeholder="请输入管理员账号" :prefix-icon="User" />
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="密码" prop="password">
+              <el-input v-model="registerForm.password" type="password" placeholder="至少6位" :prefix-icon="Lock" show-password />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="确认密码" prop="password2">
+              <el-input v-model="registerForm.password2" type="password" placeholder="请确认密码" :prefix-icon="Lock" show-password />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-button type="primary" @click="handleRegister" :loading="registerLoading" class="register-btn">立即注册</el-button>
+      </el-form>
+
+      <div class="register-footer">
+        已有账号？<el-button type="primary" link @click="registerDialogVisible = false">返回登录</el-button>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Document, Monitor, DataAnalysis } from '@element-plus/icons-vue'
+import { User, Lock, Document, Monitor, DataAnalysis, OfficeBuilding } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
+import api from '../api/index'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -104,6 +147,51 @@ const loginForm = reactive({
 const loginRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
+
+// 注册相关
+const registerDialogVisible = ref(false)
+const registerLoading = ref(false)
+const registerFormRef = ref()
+
+const registerForm = reactive({
+  tenantName: '',
+  username: '',
+  password: '',
+  password2: ''
+})
+
+const registerRules = {
+  tenantName: [{ required: true, message: '请输入企业/个人名称', trigger: 'blur' }],
+  username: [{ required: true, message: '请输入管理员账号', trigger: 'blur' }],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码至少6位', trigger: 'blur' }
+  ],
+  password2: [{ required: true, message: '请确认密码', trigger: 'blur' }]
+}
+
+const handleRegister = async () => {
+  await registerFormRef.value.validate()
+  if (registerForm.password !== registerForm.password2) {
+    ElMessage.error('两次密码不一致')
+    return
+  }
+  registerLoading.value = true
+  try {
+    await api.post('/auth/register-tenant', {
+      tenantName: registerForm.tenantName,
+      username: registerForm.username,
+      password: registerForm.password
+    })
+    ElMessage.success('注册成功，请登录')
+    registerDialogVisible.value = false
+    loginForm.username = registerForm.username
+    loginForm.password = registerForm.password
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error || '注册失败')
+  }
+  registerLoading.value = false
 }
 
 // 页面加载时读取保存的凭证
@@ -592,5 +680,159 @@ const handleLogin = async () => {
   .orb-1, .orb-2, .orb-3 {
     display: none;
   }
+}
+
+/* 注册对话框样式 */
+.register-container {
+  padding: 32px;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.register-logo {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+}
+
+.register-logo .logo-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.register-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, #ffffff, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.register-header p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.register-form :deep(.el-form-item__label) {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-weight: 500;
+}
+
+.register-form :deep(.el-input__wrapper) {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+}
+
+.register-form :deep(.el-input__wrapper:hover) {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+.register-form :deep(.el-input__wrapper.is-focus) {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.register-form :deep(.el-input__inner) {
+  color: #ffffff !important;
+}
+
+.register-form :deep(.el-input__inner::placeholder) {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.register-form :deep(.el-input__prefix .el-icon) {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.register-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: none;
+  margin-top: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.register-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.register-btn:hover::before {
+  left: 100%;
+}
+
+.register-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+}
+
+.register-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.register-footer :deep(.el-button--primary.is-link) {
+  color: #60a5fa;
+}
+</style>
+
+<!-- 全局样式，覆盖dialog默认背景 -->
+<style>
+.el-dialog.register-dialog {
+  background: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px !important;
+}
+
+.el-dialog.register-dialog .el-dialog__header {
+  display: none !important;
+}
+
+.el-dialog.register-dialog .el-dialog__body {
+  padding: 0 !important;
+  background: #0f172a !important;
+}
+
+.el-dialog.register-dialog .el-dialog__headerbtn {
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.el-dialog.register-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.el-dialog.register-dialog .el-dialog__headerbtn:hover .el-dialog__close {
+  color: #fff;
 }
 </style>

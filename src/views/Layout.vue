@@ -3,7 +3,7 @@
     <el-aside width="220px" class="sidebar">
       <div class="sidebar-logo">
         <el-icon size="22" color="#409eff"><Document /></el-icon>
-        <span>财税管理平台</span>
+        <span>业财一体化管理</span>
       </div>
       <el-menu
         :default-active="route.path"
