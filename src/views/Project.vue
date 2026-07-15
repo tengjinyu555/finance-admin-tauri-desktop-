@@ -70,7 +70,7 @@
           <template #default="{ row }">
             <el-button size="small" @click="showDetail(row)">详情</el-button>
             <el-button size="small" @click="showEdit(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button v-if="row.status === '待启动'" size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -266,12 +266,36 @@
             <div class="table-wrapper">
               <el-table :data="pagedAdvances" style="width: 100%">
                 <el-table-column type="index" label="序号" width="60" align="center" />
-                <el-table-column prop="customerName" label="垫资主体" min-width="120" align="center" />
+                <el-table-column prop="customerName" label="垫资主体" min-width="120" align="center">
+                  <template #header>
+                    <div class="filter-header">
+                      <span>垫资主体</span>
+                      <el-popover placement="bottom" :width="200" trigger="click">
+                        <template #reference>
+                          <el-icon class="filter-icon" size="22"><Filter /></el-icon>
+                        </template>
+                        <el-input v-model="advanceFilter.customerName" placeholder="搜索主体" clearable size="small" @input="handleAdvanceFilter" />
+                      </el-popover>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="amount" label="垫资金额" align="right" width="120">
                   <template #default="{ row }"><span style="color: #f56c6c; font-weight: 600;">¥{{ formatMoney(row.amount) }}</span></template>
                 </el-table-column>
                 <el-table-column prop="advanceDate" label="垫资日期" width="110" align="center" />
-                <el-table-column prop="purpose" label="用途" min-width="150" show-overflow-tooltip />
+                <el-table-column prop="purpose" label="用途" min-width="150" show-overflow-tooltip>
+                  <template #header>
+                    <div class="filter-header">
+                      <span>用途</span>
+                      <el-popover placement="bottom" :width="200" trigger="click">
+                        <template #reference>
+                          <el-icon class="filter-icon" size="22"><Filter /></el-icon>
+                        </template>
+                        <el-input v-model="advanceFilter.purpose" placeholder="搜索用途" clearable size="small" @input="handleAdvanceFilter" />
+                      </el-popover>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="invoiceType" label="发票" width="100" align="center">
                   <template #default="{ row }">
                     <el-button v-if="row.invoiceType === '有票'" type="primary" link size="small" @click="viewInvoice(row.invoiceNo)">
@@ -288,8 +312,8 @@
                   </template>
                 </el-table-column>
               </el-table>
-              <div class="pagination-wrapper" v-if="(projectDetail.advances || []).length > pageSize">
-                <el-pagination background layout="total, prev, pager, next" :total="(projectDetail.advances || []).length" :page-size="pageSize" v-model:current-page="advancePage" />
+              <div class="pagination-wrapper" v-if="filteredAdvances.length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="filteredAdvances.length" :page-size="pageSize" v-model:current-page="advancePage" />
               </div>
             </div>
           </el-tab-pane>
@@ -308,8 +332,32 @@
             <div class="table-wrapper">
               <el-table :data="pagedExpenses" style="width: 100%">
                 <el-table-column type="index" label="序号" width="60" align="center" />
-                <el-table-column prop="customerName" label="客户" min-width="120" align="center" />
-                <el-table-column prop="expenseName" label="支出名称" min-width="120" show-overflow-tooltip />
+                <el-table-column prop="customerName" label="客户" min-width="120" align="center">
+                  <template #header>
+                    <div class="filter-header">
+                      <span>客户</span>
+                      <el-popover placement="bottom" :width="200" trigger="click">
+                        <template #reference>
+                          <el-icon class="filter-icon" size="22"><Filter /></el-icon>
+                        </template>
+                        <el-input v-model="expenseFilter.customerName" placeholder="搜索客户" clearable size="small" @input="handleExpenseFilter" />
+                      </el-popover>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="expenseName" label="支出名称" min-width="120" show-overflow-tooltip>
+                  <template #header>
+                    <div class="filter-header">
+                      <span>支出名称</span>
+                      <el-popover placement="bottom" :width="200" trigger="click">
+                        <template #reference>
+                          <el-icon class="filter-icon" size="22"><Filter /></el-icon>
+                        </template>
+                        <el-input v-model="expenseFilter.expenseName" placeholder="搜索名称" clearable size="small" @input="handleExpenseFilter" />
+                      </el-popover>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="amount" label="金额" align="right" width="120">
                   <template #default="{ row }"><span style="color: #f56c6c; font-weight: 600;">¥{{ formatMoney(row.amount) }}</span></template>
                 </el-table-column>
@@ -330,8 +378,8 @@
                   </template>
                 </el-table-column>
               </el-table>
-              <div class="pagination-wrapper" v-if="(projectDetail.expenses || []).length > pageSize">
-                <el-pagination background layout="total, prev, pager, next" :total="(projectDetail.expenses || []).length" :page-size="pageSize" v-model:current-page="expensePage" />
+              <div class="pagination-wrapper" v-if="filteredExpenses.length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="filteredExpenses.length" :page-size="pageSize" v-model:current-page="expensePage" />
               </div>
             </div>
           </el-tab-pane>
@@ -350,8 +398,32 @@
             <div class="table-wrapper">
               <el-table :data="pagedReceipts" style="width: 100%">
                 <el-table-column type="index" label="序号" width="60" align="center" />
-                <el-table-column prop="customerName" label="客户" min-width="120" align="center" />
-                <el-table-column prop="receiptName" label="回款名称" min-width="120" show-overflow-tooltip />
+                <el-table-column prop="customerName" label="客户" min-width="120" align="center">
+                  <template #header>
+                    <div class="filter-header">
+                      <span>客户</span>
+                      <el-popover placement="bottom" :width="200" trigger="click">
+                        <template #reference>
+                          <el-icon class="filter-icon" size="22"><Filter /></el-icon>
+                        </template>
+                        <el-input v-model="receiptFilter.customerName" placeholder="搜索客户" clearable size="small" @input="handleReceiptFilter" />
+                      </el-popover>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="receiptName" label="回款名称" min-width="120" show-overflow-tooltip>
+                  <template #header>
+                    <div class="filter-header">
+                      <span>回款名称</span>
+                      <el-popover placement="bottom" :width="200" trigger="click">
+                        <template #reference>
+                          <el-icon class="filter-icon" size="22"><Filter /></el-icon>
+                        </template>
+                        <el-input v-model="receiptFilter.receiptName" placeholder="搜索名称" clearable size="small" @input="handleReceiptFilter" />
+                      </el-popover>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="amount" label="金额" align="right" width="120">
                   <template #default="{ row }"><span style="color: #67c23a; font-weight: 600;">¥{{ formatMoney(row.amount) }}</span></template>
                 </el-table-column>
@@ -372,8 +444,8 @@
                   </template>
                 </el-table-column>
               </el-table>
-              <div class="pagination-wrapper" v-if="(projectDetail.receipts || []).length > pageSize">
-                <el-pagination background layout="total, prev, pager, next" :total="(projectDetail.receipts || []).length" :page-size="pageSize" v-model:current-page="receiptPage" />
+              <div class="pagination-wrapper" v-if="filteredReceipts.length > pageSize">
+                <el-pagination background layout="total, prev, pager, next" :total="filteredReceipts.length" :page-size="pageSize" v-model:current-page="receiptPage" />
               </div>
             </div>
           </el-tab-pane>
@@ -647,7 +719,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, ArrowDown, Document, Money, DataAnalysis, Notebook, User, Download, View } from '@element-plus/icons-vue'
+import { Plus, ArrowDown, Document, Money, DataAnalysis, Notebook, User, Download, View, Filter } from '@element-plus/icons-vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import '@wangeditor/editor/dist/css/style.css'
 import api from '../api/index'
@@ -792,7 +864,76 @@ const handleSave = async () => {
 const detailVisible = ref(false)
 const currentProject = ref(null)
 const projectDetail = ref({ advances: [], expenses: [], receipts: [], flows: [], memos: [], relatedInvoiceNos: [] })
-const detailTab = ref('overview')
+const detailTab = ref('advances')
+
+// 垫资筛选
+const advanceFilter = reactive({
+  customerName: '',
+  purpose: ''
+})
+
+const filteredAdvances = computed(() => {
+  let data = projectDetail.value.advances || []
+  if (advanceFilter.customerName) {
+    const keyword = advanceFilter.customerName.toLowerCase()
+    data = data.filter(item => item.customerName && item.customerName.toLowerCase().includes(keyword))
+  }
+  if (advanceFilter.purpose) {
+    const keyword = advanceFilter.purpose.toLowerCase()
+    data = data.filter(item => item.purpose && item.purpose.toLowerCase().includes(keyword))
+  }
+  return data
+})
+
+const handleAdvanceFilter = () => {
+  advancePage.value = 1
+}
+
+// 回款筛选
+const receiptFilter = reactive({
+  customerName: '',
+  receiptName: ''
+})
+
+const filteredReceipts = computed(() => {
+  let data = projectDetail.value.receipts || []
+  if (receiptFilter.customerName) {
+    const keyword = receiptFilter.customerName.toLowerCase()
+    data = data.filter(item => item.customerName && item.customerName.toLowerCase().includes(keyword))
+  }
+  if (receiptFilter.receiptName) {
+    const keyword = receiptFilter.receiptName.toLowerCase()
+    data = data.filter(item => item.receiptName && item.receiptName.toLowerCase().includes(keyword))
+  }
+  return data
+})
+
+const handleReceiptFilter = () => {
+  receiptPage.value = 1
+}
+
+// 支出筛选
+const expenseFilter = reactive({
+  customerName: '',
+  expenseName: ''
+})
+
+const filteredExpenses = computed(() => {
+  let data = projectDetail.value.expenses || []
+  if (expenseFilter.customerName) {
+    const keyword = expenseFilter.customerName.toLowerCase()
+    data = data.filter(item => item.customerName && item.customerName.toLowerCase().includes(keyword))
+  }
+  if (expenseFilter.expenseName) {
+    const keyword = expenseFilter.expenseName.toLowerCase()
+    data = data.filter(item => item.expenseName && item.expenseName.toLowerCase().includes(keyword))
+  }
+  return data
+})
+
+const handleExpenseFilter = () => {
+  expensePage.value = 1
+}
 
 const detailStats = reactive({
   totalAdvance: 0,
@@ -821,15 +962,15 @@ const inputInvoiceStats = reactive({ totalAmount: 0, totalTax: 0 })
 // 分页数据
 const pagedAdvances = computed(() => {
   const start = (advancePage.value - 1) * pageSize.value
-  return (projectDetail.value.advances || []).slice(start, start + pageSize.value)
+  return filteredAdvances.value.slice(start, start + pageSize.value)
 })
 const pagedExpenses = computed(() => {
   const start = (expensePage.value - 1) * pageSize.value
-  return (projectDetail.value.expenses || []).slice(start, start + pageSize.value)
+  return filteredExpenses.value.slice(start, start + pageSize.value)
 })
 const pagedReceipts = computed(() => {
   const start = (receiptPage.value - 1) * pageSize.value
-  return (projectDetail.value.receipts || []).slice(start, start + pageSize.value)
+  return filteredReceipts.value.slice(start, start + pageSize.value)
 })
 const pagedFlows = computed(() => {
   const start = (flowPage.value - 1) * pageSize.value
@@ -1102,7 +1243,7 @@ const saveFlowForm = async () => {
 const showDetail = async (row) => {
   currentProject.value = row
   detailVisible.value = true
-  detailTab.value = 'overview'
+  detailTab.value = 'advances'
 
   try {
     const data = await api.get(`/project-details/${row.id}`)
@@ -1919,5 +2060,27 @@ onMounted(() => {
 
 :deep(.el-pagination .btn-prev, .el-pagination .btn-next) {
   border-radius: 6px;
+}
+
+/* 列头筛选样式 */
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.filter-icon {
+  cursor: pointer;
+  color: #a8abb2;
+  font-size: 20px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.filter-icon:hover {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
 }
 </style>
