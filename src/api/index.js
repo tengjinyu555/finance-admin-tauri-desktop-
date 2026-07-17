@@ -2,7 +2,7 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '../router'
 
-const baseURL = 'http://finance.52youran.top/api'
+const baseURL = 'https://finance.52youran.top/api'
 
 const api = axios.create({
   baseURL,
@@ -132,8 +132,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       redirectToLogin()
     } else {
-      const message = error.response?.data?.error || '请求失败'
-      ElMessage.error(message)
+      // 找回密码/重置密码等公开接口不自动弹错误，由页面自行处理
+      const skipErrorPopup = ['/auth/forgot-password', '/auth/reset-password']
+      const url = error.config?.url || ''
+      const shouldSkip = skipErrorPopup.some(path => url.includes(path))
+      if (!shouldSkip) {
+        const message = error.response?.data?.error || '请求失败'
+        ElMessage.error(message)
+      }
     }
     return Promise.reject(error)
   }

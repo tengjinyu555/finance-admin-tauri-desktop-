@@ -14,7 +14,7 @@
       </div>
     </template>
 
-    <el-table :data="tableData" border v-loading="loading" header-cell-class-name="header-center" cell-class-name="cell-center" style="width: 100%" :header-cell-style="{ padding: '8px 0' }" :cell-style="{ padding: '6px 0' }">
+    <el-table :data="tableData" border v-loading="loading" header-cell-class-name="header-center" cell-class-name="cell-center" style="width: 100%" :header-cell-style="{ padding: '8px 0' }" :cell-style="{ padding: '6px 0' }" fit>
       <el-table-column type="index" label="序号" width="60" align="center" />
       <el-table-column prop="supplierId" label="客户编号" min-width="150" align="center" />
       <el-table-column prop="name" label="名称" min-width="200" align="center">
@@ -230,6 +230,5 @@ onMounted(loadData)
 }
 :deep(.cell-center .cell) {
   text-align: center;
-  white-space: nowrap;
 }
 </style>

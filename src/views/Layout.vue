@@ -11,6 +11,7 @@
         background-color="#001529"
         text-color="rgba(255,255,255,0.65)"
         active-text-color="#fff"
+        class="sidebar-menu"
       >
         <el-menu-item index="/dashboard">
           <el-icon><Odometer /></el-icon>
@@ -45,41 +46,59 @@
           <span>操作日志</span>
         </el-menu-item>
       </el-menu>
+      <!-- 底部企业切换 -->
+      <div class="sidebar-footer">
+        <el-popover placement="right" trigger="click" :width="'auto'">
+          <template #reference>
+            <div class="tenant-trigger">
+              <el-icon><OfficeBuilding /></el-icon>
+              <span class="tenant-label">我的主体</span>
+            </div>
+          </template>
+          <div class="tenant-list">
+            <div
+              v-for="t in tenantList"
+              :key="t.tenantId"
+              class="tenant-item"
+              :class="{ active: currentTenantId === t.tenantId }"
+              @click="handleTenantChange(t.tenantId)"
+            >
+              <span>{{ t.tenantName }}</span>
+              <el-icon v-if="currentTenantId === t.tenantId" class="check-icon"><Check /></el-icon>
+            </div>
+          </div>
+        </el-popover>
+      </div>
     </el-aside>
 
     <el-container>
       <el-header class="topbar">
         <div class="topbar-title">{{ route.meta.title }}</div>
         <div class="topbar-right">
-          <!-- 企业切换 -->
-          <div class="tenant-wrapper">
-            <el-icon class="tenant-icon"><OfficeBuilding /></el-icon>
-            <el-select
-              v-model="currentTenantId"
-              placeholder="选择企业"
-              style="width: 220px;"
-              @change="handleTenantChange"
-              class="tenant-select"
-            >
-              <el-option
-                v-for="t in tenantList"
-                :key="t.tenantId"
-                :label="t.tenantName"
-                :value="t.tenantId"
-              />
-            </el-select>
-          </div>
-          <el-tag type="primary">
-            <el-icon><User /></el-icon>
-            {{ (userStore.user?.roles || []).join(', ') || '未知角色' }}
-          </el-tag>
-          <el-tooltip content="个人信息" placement="bottom">
-            <span class="user-avatar" @click="showProfile">{{ (userStore.user?.nickname || userStore.user?.username || '').charAt(0) }}</span>
-          </el-tooltip>
-          <el-button text @click="handleLock">
-            <el-icon><Lock /></el-icon> 锁屏
-          </el-button>
-          <el-button text @click="handleLogout">登出</el-button>
+          <!-- 用户下拉菜单 -->
+          <el-dropdown trigger="click">
+            <div class="user-info">
+              <span class="user-avatar">{{ (userStore.user?.nickname || userStore.user?.username || '').charAt(0) }}</span>
+              <span class="user-name">{{ userStore.user?.nickname || userStore.user?.username }}</span>
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item disabled>
+                  <el-tag size="small" type="info">{{ (userStore.user?.roles || []).join(', ') || '未知角色' }}</el-tag>
+                </el-dropdown-item>
+                <el-dropdown-item @click="showProfile">
+                  <el-icon><User /></el-icon> 个人信息
+                </el-dropdown-item>
+                <el-dropdown-item @click="handleLock">
+                  <el-icon><Lock /></el-icon> 锁屏
+                </el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">
+                  <el-icon><SwitchButton /></el-icon> 登出
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </el-header>
 
@@ -98,11 +117,27 @@
         </div>
       </div>
       <el-form :model="profileForm" label-width="80px" style="margin-top: 20px;">
+        <el-form-item label="昵称">
+          <div class="email-row">
+            <el-input v-model="profileForm.nickname" :placeholder="userStore.user?.nickname || '未设置'" :disabled="!nicknameEditing" />
+            <el-button v-if="!nicknameEditing" type="primary" size="small" @click="startEditNickname">修改</el-button>
+            <el-button v-else type="success" size="small" @click="saveNickname">保存</el-button>
+          </div>
+        </el-form-item>
         <el-form-item label="所属企业">
           <el-input :value="userStore.user?.tenantName || '默认企业'" disabled />
         </el-form-item>
         <el-form-item label="登录账户">
           <el-input :value="userStore.user?.username" disabled />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <div class="email-row">
+            <el-input v-model="profileForm.email" :placeholder="userStore.user?.email || '未设置'" :disabled="!emailEditing" />
+            <el-button v-if="!emailEditing" type="primary" size="small" @click="startEditEmail">
+              {{ userStore.user?.email ? '换绑' : '绑定' }}
+            </el-button>
+            <el-button v-else type="success" size="small" @click="bindEmail">确认绑定</el-button>
+          </div>
         </el-form-item>
         <el-divider>修改密码</el-divider>
         <el-form-item label="原密码">
@@ -123,22 +158,22 @@
 
     <!-- 锁屏遮罩 -->
     <div v-if="isLocked" class="lock-overlay">
-      <div class="lock-content">
-        <el-icon size="64" color="#fff"><Lock /></el-icon>
-        <h2>屏幕已锁定</h2>
-        <p>{{ userStore.user?.nickname || userStore.user?.username }}</p>
+      <div class="lock-card">
+        <div class="lock-avatar">
+          <el-icon size="40" color="#fff"><Lock /></el-icon>
+        </div>
+        <h2 class="lock-title">屏幕已锁定</h2>
+        <p class="lock-user">{{ userStore.user?.nickname || userStore.user?.username }}</p>
         <el-input
           v-model="unlockPassword"
           type="password"
           placeholder="请输入密码解锁"
           show-password
           @keyup.enter="handleUnlock"
-          style="width: 240px; margin-top: 20px"
+          class="lock-input"
         />
-        <el-button type="primary" @click="handleUnlock" style="margin-top: 16px; width: 240px">
-          解锁
-        </el-button>
-        <p v-if="unlockError" style="color: #ff6b6b; margin-top: 10px">{{ unlockError }}</p>
+        <el-button type="primary" @click="handleUnlock" class="lock-btn">解锁</el-button>
+        <p v-if="unlockError" class="lock-error">{{ unlockError }}</p>
       </div>
     </div>
   </el-container>
@@ -148,9 +183,10 @@
 import { ref, reactive, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { Document, Odometer, OfficeBuilding, Monitor, User, Lock, Money, List, DataAnalysis, Folder, Notebook } from '@element-plus/icons-vue'
+import { Document, Odometer, OfficeBuilding, Monitor, User, Lock, Money, List, DataAnalysis, Folder, Notebook, Bell, ArrowDown, SwitchButton, ArrowRight, Check } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { AuthApi } from '../api/invoice'
+import api from '../api/index'
 
 const route = useRoute()
 const router = useRouter()
@@ -205,16 +241,86 @@ loadUserTenants()
 // 个人信息相关
 const profileVisible = ref(false)
 const profileForm = reactive({
+  nickname: '',
+  email: '',
   oldPassword: '',
   newPassword: '',
   confirmPassword: ''
 })
+const nicknameEditing = ref(false)
+const emailEditing = ref(false)
 
 const showProfile = () => {
+  profileForm.nickname = ''
+  profileForm.email = ''
   profileForm.oldPassword = ''
   profileForm.newPassword = ''
   profileForm.confirmPassword = ''
+  nicknameEditing.value = false
+  emailEditing.value = false
   profileVisible.value = true
+}
+
+const startEditNickname = () => {
+  profileForm.nickname = userStore.user?.nickname || ''
+  nicknameEditing.value = true
+}
+
+const saveNickname = async () => {
+  if (!profileForm.nickname) {
+    ElMessage.warning('请输入昵称')
+    return
+  }
+  try {
+    await api.put('/users/update-nickname', {
+      nickname: profileForm.nickname
+    })
+    ElMessage.success('昵称修改成功')
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    user.nickname = profileForm.nickname
+    localStorage.setItem('user', JSON.stringify(user))
+    userStore.user.nickname = profileForm.nickname
+    nicknameEditing.value = false
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error || '修改失败')
+  }
+}
+
+const startEditEmail = () => {
+  profileForm.email = userStore.user?.email || ''
+  emailEditing.value = true
+}
+
+const bindEmail = async () => {
+  console.log('bindEmail called, email:', profileForm.email)
+  if (!profileForm.email) {
+    ElMessage.warning('请输入邮箱地址')
+    return
+  }
+  // 简单的邮箱格式验证
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(profileForm.email)) {
+    ElMessage.warning('请输入正确的邮箱格式')
+    return
+  }
+  try {
+    console.log('Sending request...')
+    await api.put('/users/bind-email', {
+      email: profileForm.email
+    })
+    console.log('Request success')
+    ElMessage.success('邮箱绑定成功')
+    // 更新本地存储的用户信息
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    user.email = profileForm.email
+    localStorage.setItem('user', JSON.stringify(user))
+    userStore.user.email = profileForm.email
+    emailEditing.value = false
+    profileForm.email = ''
+  } catch (e) {
+    console.error('Request failed:', e)
+    ElMessage.error(e.response?.data?.error || '绑定失败')
+  }
 }
 
 const changePassword = async () => {
@@ -287,6 +393,72 @@ const handleLogout = () => {
 .sidebar {
   background: #001529;
   color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-menu {
+  flex: 1;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.2);
+}
+
+.tenant-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: rgba(255,255,255,0.8);
+}
+
+.tenant-trigger:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.tenant-label {
+  font-size: 13px;
+  flex: 1;
+}
+
+.tenant-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tenant-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tenant-item:hover {
+  background: #f5f7fa;
+}
+
+.tenant-item.active {
+  background: linear-gradient(135deg, #ecf5ff, #d9ecff);
+  color: #409eff;
+  font-weight: 500;
+}
+
+.check-icon {
+  color: #409eff;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .sidebar-logo {
@@ -319,26 +491,40 @@ const handleLogout = () => {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.user-info:hover {
+  background-color: #f5f7fa;
 }
 
 .user-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #409eff;
+  background: linear-gradient(135deg, #409eff, #66b1ff);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  cursor: pointer;
-  transition: transform 0.2s;
+  font-weight: 600;
 }
 
-.user-avatar:hover {
-  transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.4);
+.user-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
 }
 
 .profile-header {
@@ -376,6 +562,16 @@ const handleLogout = () => {
   color: #909399;
 }
 
+.email-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.email-row .el-input {
+  flex: 1;
+}
+
 .main-content {
   background: #f0f2f5;
   padding: 20px;
@@ -391,27 +587,87 @@ const handleLogout = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-.lock-content {
+.lock-card {
   text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 40px 50px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.lock-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+}
+
+.lock-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
   color: #fff;
 }
 
-.lock-content h2 {
-  margin: 20px 0 10px;
-  font-size: 24px;
-  font-weight: 600;
+.lock-user {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-.lock-content p {
-  color: rgba(255, 255, 255, 0.7);
+.lock-input {
+  width: 260px;
+}
+
+:deep(.lock-input .el-input__wrapper) {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+  height: 40px;
+}
+
+:deep(.lock-input .el-input__inner) {
+  color: #fff !important;
+}
+
+:deep(.lock-input .el-input__inner::placeholder) {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.lock-btn {
+  width: 260px;
+  margin-top: 16px;
+  height: 40px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: none;
   font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+  line-height: 40px;
+}
+
+.lock-btn:hover {
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+}
+
+.lock-error {
+  color: #ff6b6b;
+  margin: 12px 0 0;
+  font-size: 13px;
 }
 
 /* 企业选择框样式优化 */

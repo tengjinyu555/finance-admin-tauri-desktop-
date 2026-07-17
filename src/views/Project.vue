@@ -764,7 +764,7 @@ const exportData = async () => {
   try {
     const token = localStorage.getItem('token')
     const tenantId = localStorage.getItem('tenantId')
-    const res = await axios.get('http://finance.52youran.top/api/projects/export', {
+    const res = await axios.get('https://finance.52youran.top/api/projects/export', {
       responseType: 'blob',
       headers: {
         'Authorization': 'Bearer ' + token,

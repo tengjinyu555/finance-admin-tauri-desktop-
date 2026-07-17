@@ -1,16 +1,13 @@
 {
   "name": "finance-admin-vue",
   "private": true,
-  "version": "1.0.2",
-  "main": "electron/main.cjs",
+  "version": "1.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "vite build && electron-builder --win",
-    "dist": "electron-builder --win --x64"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -23,33 +20,9 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/cli": "^2.0.0",
     "@vitejs/plugin-vue": "^5.2.4",
-    "concurrently": "^9.2.3",
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.0",
-    "vite": "^5.4.21",
-    "wait-on": "^9.0.10"
-  },
-  "build": {
-    "appId": "com.finance.admin",
-    "productName": "业财一体化管理",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "electron/**/*",
-      "dist/**/*"
-    ],
-    "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    }
+    "vite": "^5.4.21"
   }
 }
