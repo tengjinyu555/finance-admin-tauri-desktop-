@@ -18,8 +18,7 @@
         "minWidth": 1000,
         "minHeight": 700,
         "resizable": true,
-        "fullscreen": false,
-        "devtools": true
+        "fullscreen": false
       }
     ],
     "security": {
@@ -33,5 +32,12 @@
       "icons/icon.png",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": ["https://finance.52youran.top/api/version/latest"],
+      "pubkey": ""
+    }
   }
 }

@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>业财一体化管理</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      overflow: hidden;
+      height: 100vh;
+    }
+    :root {
+      --sidebar-width: 220px;
+      --header-height: 60px;
+      --sidebar-bg: #001529;
+      --primary: #409eff;
+      --success: #67c23a;
+      --warning: #e6a23c;
+      --danger: #f56c6c;
+      --info: #909399;
+    }
+
+    /* ========== LAYOUT ========== */
+    .layout { display: flex; height: 100vh; }
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo i { color: var(--primary); font-size: 22px; }
+    .sidebar-menu { flex: 1; padding: 8px 0; overflow-y: auto; }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      color: rgba(255,255,255,0.65);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      border-left: 3px solid transparent;
+    }
+    .menu-item i { width: 18px; text-align: center; font-size: 16px; }
+    .menu-item:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .menu-item.active {
+      color: #fff;
+      background: var(--primary);
+      border-left-color: #fff;
+    }
+    .sidebar-footer {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 20px;
+    }
+    .tenant-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.65);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .tenant-trigger:hover { color: #fff; }
+
+    /* ========== MAIN ========== */
+    .main-area {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .header {
+      height: var(--header-height);
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+    .header-title { font-size: 16px; font-weight: 600; color: #333; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .user-info:hover { background: #f5f5f5; }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 600;
+    }
+    .user-name { font-size: 14px; color: #333; }
+    .content {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background: #f0f2f5;
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ========== DROPDOWN ========== */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-menu {
+      position: absolute; top: 100%; right: 0; margin-top: 4px;
+      background: #fff; border-radius: 4px; box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+      min-width: 160px; z-index: 1000; display: none;
+      padding: 4px 0;
+    }
+    .dropdown-menu.show { display: block; }
+    .dropdown-item {
+      padding: 8px 16px; font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: background 0.2s;
+    }
+    .dropdown-item:hover { background: #f5f7fa; }
+    .dropdown-item i { width: 16px; color: #666; }
+    .dropdown-divider { height: 1px; background: #e8e8e8; margin: 4px 0; }
+    .dropdown-item .tag {
+      display: inline-block; padding: 0 6px; height: 20px; line-height: 20px;
+      border-radius: 3px; font-size: 12px; background: #f0f2f5; color: #666;
+    }
+
+    /* ========== CARDS & TABLE ========== */
+    .el-card {
+      background: #fff; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .card-header {
+      padding: 14px 16px; border-bottom: 1px solid #e8e8e8;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-header .title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .card-body { padding: 16px; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
+
+    .stat-card-grad {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-radius: 8px; color: #fff; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card-grad:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .stat-card-grad .stat-val { font-size: 26px; font-weight: 700; line-height: 1.2; }
+    .stat-card-grad .stat-lbl { font-size: 13px; opacity: 0.9; margin-top: 2px; }
+    .stat-card-grad .stat-icn { font-size: 32px; opacity: 0.8; }
+    .bg-blue { background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%); }
+    .bg-green { background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%); }
+    .bg-orange { background: linear-gradient(135deg, #e6a23c 0%, #ebb563 100%); }
+    .bg-purple { background: linear-gradient(135deg, #9b59b6 0%, #bb86fc 100%); }
+
+    .stat-card-sm {
+      padding: 16px; border-radius: 6px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .stat-card-sm .stat-label { font-size: 13px; color: #999; margin-bottom: 4px; }
+    .stat-card-sm .stat-value { font-size: 24px; font-weight: 700; }
+    .stat-card-sm .stat-value.green { color: var(--success); }
+    .stat-card-sm .stat-value.orange { color: var(--warning); }
+    .stat-card-sm .stat-value.blue { color: var(--primary); }
+    .stat-card-sm .stat-value.purple { color: #9b59b6; }
+    .stat-card-sm .stat-value.red { color: var(--danger); }
+
+    .stats-row-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+    .stats-row-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 16px; }
+
+    /* ========== TABLE ========== */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 14px;
+    }
+    table th, table td {
+      padding: 8px 10px; text-align: center; border: 1px solid #ebeef5;
+    }
+    table th {
+      background: #fafafa; color: #555; font-weight: 600;
+    }
+    table td strong { font-weight: 600; }
+
+    .tag {
+      display: inline-block; padding: 0 8px; height: 22px; line-height: 22px;
+      border-radius: 3px; font-size: 12px; font-weight: 500;
+    }
+    .tag-primary { background: #ecf5ff; color: var(--primary); }
+    .tag-success { background: #f0f9eb; color: var(--success); }
+    .tag-warning { background: #fdf6ec; color: var(--warning); }
+    .tag-danger { background: #fef0f0; color: var(--danger); }
+    .tag-info { background: #f4f4f5; color: var(--info); }
+
+    .text-green { color: var(--success); }
+    .text-orange { color: var(--warning); }
+    .text-blue { color: var(--primary); }
+    .text-red { color: var(--danger); }
+    .text-right { text-align: right; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 6px 14px; font-size: 13px; border-radius: 4px;
+      border: 1px solid #dcdfe6; background: #fff; color: #333;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: #3a8ee6; }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-success:hover { background: #5daf34; }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-danger:hover { background: #e06060; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-group { display: flex; gap: 8px; }
+    .btn-link { border: none; background: none; color: var(--primary); cursor: pointer; font-size: 13px; padding: 0; }
+    .btn-link:hover { text-decoration: underline; }
+
+    /* ========== TOOLBAR ========== */
+    .toolbar { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .toolbar select {
+      padding: 6px 28px 6px 10px; font-size: 13px; border: 1px solid #dcdfe6;
+      border-radius: 4px; background: #fff; color: #333; cursor: pointer;
+      appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 8px center;
+    }
+    .toolbar input[type="text"] {
+      padding: 6px 10px; font-size: 13px; border: 1px solid #dcdfe6;
+      border-radius: 4px; background: #fff; width: 200px;
+    }
+
+    /* ========== PAGINATION ========== */
+    .pagination {
+      display: flex; justify-content: flex-end; align-items: center;
+      gap: 8px; margin-top: 16px; font-size: 13px;
+    }
+    .pagination .page-btn {
+      padding: 4px 10px; border: 1px solid #dcdfe6; border-radius: 3px;
+      background: #fff; cursor: pointer; font-size: 12px; color: #333;
+    }
+    .pagination .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .pagination .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .pagination .page-btn:disabled { color: #ccc; cursor: not-allowed; }
+    .pagination .page-info { color: #666; }
+
+    /* ========== DIALOG ========== */
+    .dialog-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 2000;
+      align-items: center; justify-content: center;
+    }
+    .dialog-overlay.show { display: flex; }
+    .dialog {
+      background: #fff; border-radius: 8px; width: 500px; max-width: 90vw;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-height: 85vh; overflow-y: auto;
+    }
+    .dialog-header {
+      padding: 16px 20px; border-bottom: 1px solid #e8e8e8;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .dialog-header h3 { font-size: 16px; font-weight: 600; }
+    .dialog-close { cursor: pointer; font-size: 20px; color: #999; }
+    .dialog-close:hover { color: #333; }
+    .dialog-body { padding: 20px; }
+    .dialog-footer { padding: 12px 20px; border-top: 1px solid #e8e8e8; display: flex; justify-content: flex-end; gap: 8px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 4px;
+      font-size: 13px; font-family: inherit;
+    }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group input[disabled] { background: #f5f7fa; color: #999; cursor: not-allowed; }
+
+    /* ========== UPLOAD ========== */
+    .upload-area {
+      border: 2px dashed #dcdfe6; border-radius: 8px; padding: 40px;
+      text-align: center; cursor: pointer; transition: border-color 0.3s;
+    }
+    .upload-area:hover { border-color: var(--primary); }
+    .upload-area i { font-size: 48px; color: #c0c4cc; margin-bottom: 8px; }
+    .upload-area p { font-size: 14px; color: #666; }
+    .upload-area .highlight { color: var(--primary); }
+    .upload-area .tip { font-size: 12px; color: #999; margin-top: 8px; }
+    .file-list-wrapper { margin-top: 16px; }
+    .file-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .file-list-header span { font-weight: 500; }
+    .file-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .file-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px; background: #f5f7fa; border-radius: 4px; font-size: 13px;
+    }
+    .file-item i { color: var(--primary); }
+    .file-item .del-file { color: var(--danger); cursor: pointer; margin-left: 4px; }
+    .btn-center { text-align: center; margin-top: 16px; }
+
+    /* ========== SUMMARY GRID (Project Detail) ========== */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0;
+    }
+    .summary-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px; border-radius: 6px; border: 1px solid #e8e8e8;
+    }
+    .summary-item .s-icon {
+      width: 36px; height: 36px; border-radius: 8px; display: flex;
+      align-items: center; justify-content: center; color: #fff;
+    }
+    .summary-item .s-label { font-size: 12px; color: #999; }
+    .summary-item .s-value { font-size: 18px; font-weight: 700; }
+
+    /* ========== LOADING ========== */
+    .loading-spinner {
+      text-align: center; padding: 40px; color: #999;
+    }
+
+    /* ========== LOGIN PAGE ========== */
+    .login-page {
+      display: none; height: 100vh; position: relative;
+      background: linear-gradient(135deg, #0c0e2b 0%, #1a1a4e 50%, #2d1b69 100%);
+      overflow: hidden; font-family: inherit;
+    }
+    .login-page.show { display: flex; align-items: center; justify-content: center; }
+    .login-bg-layer {
+      position: absolute; inset: 0; overflow: hidden;
+    }
+    .login-orb {
+      position: absolute; border-radius: 50%; filter: blur(80px);
+      opacity: 0.4; animation: float 8s ease-in-out infinite;
+    }
+    .login-orb.o1 { width: 400px; height: 400px; background: #7c3aed; top: -100px; left: -100px; }
+    .login-orb.o2 { width: 300px; height: 300px; background: #3b82f6; bottom: -50px; right: 20%; animation-delay: -3s; }
+    .login-orb.o3 { width: 250px; height: 250px; background: #ec4899; top: 40%; right: -80px; animation-delay: -5s; }
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, -30px) scale(1.1); }
+    }
+    .login-container {
+      display: flex; gap: 60px; align-items: center; position: relative; z-index: 1;
+      max-width: 1000px; width: 90%;
+    }
+    .login-brand {
+      flex: 1; color: #fff; padding-right: 40px;
+    }
+    .login-brand .brand-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .login-brand .logo-ring {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 700; color: #fff;
+    }
+    .login-brand .brand-title { font-size: 24px; font-weight: 700; }
+    .login-brand .brand-sub { font-size: 12px; opacity: 0.6; letter-spacing: 2px; margin-top: 4px; }
+    .login-brand .tagline { font-size: 15px; opacity: 0.8; line-height: 1.8; margin-bottom: 24px; }
+    .login-brand .features { display: flex; flex-direction: column; gap: 12px; }
+    .login-brand .feature {
+      display: flex; align-items: center; gap: 10px; font-size: 14px; opacity: 0.75;
+    }
+    .login-brand .feature i { width: 20px; color: #60a5fa; }
+    .login-card {
+      width: 380px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
+      border-radius: 16px; padding: 36px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .login-card .login-header { text-align: center; margin-bottom: 24px; }
+    .login-card .login-header h2 { font-size: 24px; color: #1a1a2e; }
+    .login-card .login-header p { font-size: 14px; color: #999; margin-top: 4px; }
+    .login-card .form-group { margin-bottom: 18px; }
+    .login-card .form-group label { font-size: 13px; color: #555; margin-bottom: 6px; display: block; }
+    .login-card .form-group .input-wrap {
+      position: relative;
+    }
+    .login-card .form-group .input-wrap i {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999;
+    }
+    .login-card .form-group input {
+      width: 100%; padding: 10px 10px 10px 36px;
+      border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px;
+      transition: all 0.3s; font-family: inherit;
+    }
+    .login-card .form-group input:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(64,158,255,0.15);
+    }
+    .login-card .form-options {
+      display: flex; justify-content: space-between; align-items: center; font-size: 13px;
+    }
+    .login-card .form-options label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .login-card .form-options label input[type="checkbox"] { accent-color: var(--primary); }
+    .login-card .login-btn {
+      width: 100%; padding: 12px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), #3a8ee6); color: #fff;
+      font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px;
+      transition: all 0.3s;
+    }
+    .login-card .login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(64,158,255,0.4); }
+    .login-card .login-footer { text-align: center; margin-top: 20px; font-size: 13px; color: #999; }
+    .login-card .login-footer a { color: var(--primary); text-decoration: none; }
+    .login-card .login-footer a:hover { text-decoration: underline; }
+
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+    /* ========== OCR ========== */
+    .ocr-result { margin-top: 16px; }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; }
+      .sidebar-logo span { display: none; }
+      .menu-item span { display: none; }
+      .main-area { margin-left: 60px; }
+      .stats-row, .stats-row-5, .stats-row-6 { grid-template-columns: repeat(2, 1fr); }
+      .summary-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .login-container { flex-direction: column; }
+      .login-brand { display: none; }
+      .login-card { width: 100%; }
+    }
+
+    .clickable { cursor: pointer; color: var(--primary); }
+    .clickable:hover { text-decoration: underline; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .section-card { margin-bottom: 16px; }
+
+    /* ========== WELCOME BANNER ========== */
+    .welcome-banner {
+      background: linear-gradient(135deg, #1a1a4e 0%, #2d1b69 50%, #1a1a4e 100%);
+      border-radius: 12px; padding: 28px 32px; color: #fff;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; position: relative; overflow: hidden;
+    }
+    .welcome-banner::before {
+      content: ''; position: absolute; top: -50%; right: -10%;
+      width: 250px; height: 250px; border-radius: 50%;
+      background: rgba(255,255,255,0.03); pointer-events: none;
+    }
+    .welcome-banner::after {
+      content: ''; position: absolute; bottom: -30%; right: 20%;
+      width: 180px; height: 180px; border-radius: 50%;
+      background: rgba(255,255,255,0.02); pointer-events: none;
+    }
+    .welcome-left { display: flex; align-items: center; gap: 20px; position: relative; z-index: 1; }
+    .welcome-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #409eff, #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 700; color: #fff;
+      box-shadow: 0 4px 16px rgba(64,158,255,0.3);
+    }
+    .welcome-text .greeting { font-size: 22px; font-weight: 700; color: #fff; }
+    .welcome-text .sub { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+    .welcome-right { display: flex; gap: 32px; position: relative; z-index: 1; }
+    .welcome-stat { text-align: center; }
+    .welcome-stat .num { font-size: 28px; font-weight: 700; }
+    .welcome-stat .lbl { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+
+    /* ========== QUICK ACTIONS ========== */
+    .quick-actions {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .quick-action {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      padding: 10px 14px; background: #fff; border-radius: 8px;
+      border: 1px solid #f0f0f0; cursor: pointer; min-height: 66px; min-width: 66px;
+      transition: all 0.2s; user-select: none;
+    }
+    .quick-action:hover {
+      transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+      border-color: var(--primary);
+    }
+    .quick-action .qa-icon {
+      width: 26px; height: 26px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;
+    }
+    .quick-action .qa-text { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .quick-action .qa-label { font-size: 11px; font-weight: 500; color: #333; line-height: 1.3; }
+    .quick-action .qa-desc { display: none; }
+
+    /* ========== TODO LIST ========== */
+    .todo-list { list-style: none; }
+    .todo-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0 16px 10px; border-bottom: 1px solid #f0f0f0;
+      border-left: 3px solid transparent;
+      margin-bottom: 2px; position: relative;
+    }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-item .todo-bar-wrap {
+      position: absolute; bottom: -1px; left: 0; right: 0; height: 4px;
+      background: #f0f0f0; border-radius: 2px; overflow: hidden; margin: 0 4px;
+    }
+    .todo-item .todo-bar-wrap .todo-bar {
+      height: 100%; border-radius: 2px; transition: width 0.5s;
+    }
+    .todo-item .todo-bar-wrap .todo-bar.danger { background: var(--danger); }
+    .todo-item .todo-bar-wrap .todo-bar.warning { background: var(--warning); }
+    .todo-item .todo-bar-wrap .todo-bar.success { background: var(--success); }
+    .todo-item .todo-bar-wrap .todo-bar.primary { background: var(--primary); }
+    .todo-check { width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid #dcdfe6; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .todo-check:hover { border-color: var(--primary); }
+    .todo-check.done { background: var(--success); border-color: var(--success); }
+    .todo-check i { display: none; }
+    .todo-check.done i { display: block; color: #fff; font-size: 12px; }
+    .todo-content { flex: 1; font-size: 14px; }
+    .todo-content .todo-title { color: #333; }
+    .todo-content .todo-title.done-text { text-decoration: line-through; color: #ccc; }
+    .todo-content .todo-meta { font-size: 12px; color: #999; margin-top: 2px; }
+    .todo-priority {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
+    }
+    .todo-priority.high { background: #fef0f0; color: var(--danger); }
+    .todo-priority.medium { background: #fdf6ec; color: var(--warning); }
+    .todo-priority.low { background: #f0f9eb; color: var(--success); }
+
+    /* ========== DASHBOARD LAYOUT ========== */
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) {
+      .welcome-banner { flex-direction: column; text-align: center; gap: 16px; }
+      .welcome-right { gap: 16px; }
+      .quick-actions { grid-template-columns: repeat(3, 1fr); }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 400px) { .quick-actions { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+
+<!-- ==================== LOGIN ==================== -->
+<div class="login-page show" id="loginPage">
+  <div class="login-bg-layer">
+    <div class="login-orb o1"></div>
+    <div class="login-orb o2"></div>
+    <div class="login-orb o3"></div>
+  </div>
+  <div class="login-container">
+    <div class="login-brand">
+      <div class="brand-header">
+        <div class="logo-ring">税</div>
+        <div>
+          <div class="brand-title">业财一体化管理</div>
+          <div class="brand-sub">FINANCE ADMIN PLATFORM</div>
+        </div>
+      </div>
+      <p class="tagline">
+        专业的供应商进销项发票台账管理系统，<br>
+        为企业提供安全、高效、智能的财税解决方案。
+      </p>
+      <div class="features">
+        <div class="feature"><i class="fas fa-file-invoice"></i> 进销项发票全生命周期管理</div>
+        <div class="feature"><i class="fas fa-microchip"></i> OCR智能识别，一键导入</div>
+        <div class="feature"><i class="fas fa-chart-bar"></i> 多维度税金报表分析</div>
+        <div class="feature"><i class="fas fa-shield-alt"></i> 多租户数据安全隔离</div>
+      </div>
+    </div>
+    <div class="login-card">
+      <div class="login-header">
+        <h2>系统登录</h2>
+        <p>请使用账号密码登录系统</p>
+      </div>
+      <form id="loginForm" onsubmit="return false;">
+        <div class="form-group">
+          <label>用户名</label>
+          <div class="input-wrap">
+            <i class="fas fa-user"></i>
+            <input type="text" id="loginUsername" placeholder="请输入用户名" value="admin">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="loginPassword" placeholder="请输入密码" value="123456">
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-options">
+            <label><input type="checkbox" checked> 记住密码</label>
+            <a href="#" onclick="alert('请联系管理员重置密码'); return false;">忘记密码？</a>
+          </div>
+        </div>
+        <button class="login-btn" onclick="handleLogin()">登 录</button>
+        <div class="login-footer">
+          <span>业财一体化管理</span>
+          <div style="margin-top: 8px;">
+            <a href="#" onclick="alert('注册功能已关闭，请使用管理员提供的账号登录'); return false;">注册</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MAIN LAYOUT ==================== -->
+<div class="layout" id="mainLayout" style="display:none;">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <i class="fas fa-file-invoice"></i>
+      <span>业财一体化管理</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item active" data-page="dashboard" onclick="switchPage('dashboard')">
+        <i class="fas fa-tachometer-alt"></i><span>工作台</span>
+      </div>
+      <div class="menu-item" data-page="customer" onclick="switchPage('customer')">
+        <i class="fas fa-building"></i><span>客户管理</span>
+      </div>
+      <div class="menu-item" data-page="project" onclick="switchPage('project')">
+        <i class="fas fa-folder"></i><span>项目管理</span>
+      </div>
+      <div class="menu-item" data-page="invoice" onclick="switchPage('invoice')">
+        <i class="fas fa-file-invoice"></i><span>发票台账</span>
+      </div>
+      <div class="menu-item" data-page="transaction" onclick="switchPage('transaction')">
+        <i class="fas fa-list"></i><span>收支流水</span>
+      </div>
+      <div class="menu-item" data-page="ocr" onclick="switchPage('ocr')">
+        <i class="fas fa-microchip"></i><span>OCR识别导入</span>
+      </div>
+      <div class="menu-item" data-page="employee" onclick="switchPage('employee')">
+        <i class="fas fa-users"></i><span>员工管理</span>
+      </div>
+      <div class="menu-item" data-page="operation-log" onclick="switchPage('operation-log')">
+        <i class="fas fa-clipboard-list"></i><span>操作日志</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="tenant-trigger" onclick="alert('当前企业：默认企业')">
+        <i class="fas fa-building"></i><span>我的主体</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-area">
+    <header class="header">
+      <div class="header-title" id="pageTitle">工作台</div>
+      <div class="header-right">
+        <div class="dropdown" id="userDropdown">
+          <div class="user-info" onclick="toggleDropdown()">
+            <span class="user-avatar" id="userAvatar">A</span>
+            <span class="user-name" id="userName">管理员</span>
+            <i class="fas fa-chevron-down" style="font-size:12px;color:#999;"></i>
+          </div>
+          <div class="dropdown-menu" id="dropdownMenu">
+            <div class="dropdown-item"><i class="fas fa-tag"></i> <span class="tag">admin</span></div>
+            <div class="dropdown-item" onclick="alert('个人信息')"><i class="fas fa-user"></i> 个人信息</div>
+            <div class="dropdown-item" onclick="alert('屏幕已锁定（模拟）')"><i class="fas fa-lock"></i> 锁屏</div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item" onclick="handleLogout()" style="color:var(--danger)"><i class="fas fa-sign-out-alt"></i> 登出</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- ===== Dashboard ===== -->
+      <div class="page active" id="page-dashboard">
+        <!-- 欢迎横幅 -->
+        <div class="welcome-banner">
+          <div class="welcome-left">
+            <div class="welcome-avatar">管</div>
+            <div class="welcome-text">
+              <div class="greeting">👋 下午好，管理员！</div>
+              <div class="sub">今天是 2026年7月17日，您有 <strong style="color:#60a5fa;" id="bannerTodoCount">5</strong> 项待办事项需要处理</div>
+            </div>
+          </div>
+          <div class="welcome-right">
+            <div class="welcome-stat">
+              <div class="num" style="color:#60a5fa;">5</div>
+              <div class="lbl">待办事项</div>
+            </div>
+            <div class="welcome-stat">
+              <div class="num" style="color:#34d399;">3</div>
+              <div class="lbl">进行中项目</div>
+            </div>
+            <div class="welcome-stat">
+              <div class="num" style="color:#fbbf24;">12</div>
+              <div class="lbl">本月新增发票</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-row" style="margin-bottom:16px;">
+          <div class="stat-card-grad bg-blue" onclick="switchPage('customer')">
+            <div>
+              <div class="stat-val" id="dashCustomerCount">128</div>
+              <div class="stat-lbl">客户总数</div>
+            </div>
+            <div class="stat-icn"><i class="fas fa-building"></i></div>
+          </div>
+          <div class="stat-card-grad bg-green" onclick="switchPage('project')">
+            <div>
+              <div class="stat-val" id="dashProjectCount">36</div>
+              <div class="stat-lbl">项目总数</div>
+            </div>
+            <div class="stat-icn"><i class="fas fa-folder"></i></div>
+          </div>
+          <div class="stat-card-grad bg-orange" onclick="switchPage('invoice')">
+            <div>
+              <div class="stat-val" id="dashInvoiceCount">512</div>
+              <div class="stat-lbl">发票总数</div>
+            </div>
+            <div class="stat-icn"><i class="fas fa-file-invoice"></i></div>
+          </div>
+          <div class="stat-card-grad bg-purple" onclick="switchPage('employee')">
+            <div>
+              <div class="stat-val" id="dashEmployeeCount">24</div>
+              <div class="stat-lbl">员工人数</div>
+            </div>
+            <div class="stat-icn"><i class="fas fa-users"></i></div>
+          </div>
+        </div>
+
+        <!-- 快捷操作 + 待办事项 并排 -->
+        <div class="dash-grid" style="margin-bottom:16px;">
+          <div class="el-card" style="padding:10px 14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px;"><i class="fas fa-bolt"></i> 快捷入口</span>
+            </div>
+            <div class="quick-actions" id="quickActionsContainer"></div>
+          </div>
+          <div class="el-card">
+            <div class="card-header">
+              <span class="title"><i class="fas fa-check-circle"></i> 待办事项</span>
+              <div>
+                <span style="font-size:12px;color:#999;margin-right:8px;" id="todoCountLabel">今日待办 0 项</span>
+                <button class="btn-link" onclick="openTodoManage()" style="font-size:12px;"><i class="fas fa-pen"></i> 管理</button>
+              </div>
+            </div>
+            <div class="card-body" style="padding:8px 16px;min-height:60px;max-height:188px;overflow-y:auto;" id="todoListContainer">
+              <div style="text-align:center;padding:20px;color:#ccc;font-size:13px;">暂无待办事项</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 项目概览 + 最近操作记录 并排 -->
+        <div class="dash-grid">
+          <div class="el-card section-card">
+            <div class="card-header">
+              <span class="title"><i class="fas fa-folder"></i> 项目概览</span>
+              <button class="btn-link" onclick="switchPage('project')">查看更多 <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>序号</th><th>项目名称</th><th>负责人</th><th>预算</th><th>状态</th></tr></thead>
+                  <tbody>
+                    <tr><td>1</td><td><strong>ERP系统开发</strong></td><td>张三</td><td>¥1,200,000</td><td><span class="tag tag-primary">进行中</span></td></tr>
+                    <tr><td>2</td><td><strong>智能财税平台升级</strong></td><td>李四</td><td>¥800,000</td><td><span class="tag tag-success">已完成</span></td></tr>
+                    <tr><td>3</td><td><strong>进销项发票管理系统</strong></td><td>王五</td><td>¥500,000</td><td><span class="tag tag-primary">进行中</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="el-card section-card">
+            <div class="card-header">
+              <span class="title"><i class="fas fa-history"></i> 最近操作记录</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>序号</th><th>操作人</th><th>操作类型</th><th>模块</th><th>时间</th></tr></thead>
+                  <tbody>
+                    <tr><td>1</td><td>管理员</td><td><span class="tag tag-success">新增</span></td><td>客户</td><td>2026-07-17 09:30</td></tr>
+                    <tr><td>2</td><td>张三</td><td><span class="tag tag-primary">编辑</span></td><td>项目</td><td>2026-07-17 09:15</td></tr>
+                    <tr><td>3</td><td>管理员</td><td><span class="tag tag-warning">导入</span></td><td>发票</td><td>2026-07-16 17:20</td></tr>
+                    <tr><td>4</td><td>李四</td><td><span class="tag tag-info">登录</span></td><td>登录</td><td>2026-07-16 09:00</td></tr>
+                    <tr><td>5</td><td>管理员</td><td><span class="tag tag-danger">删除</span></td><td>发票</td><td>2026-07-15 14:30</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Customer ===== -->
+      <div class="page" id="page-customer">
+        <div class="el-card">
+          <div class="card-header">
+            <span class="title">客户档案</span>
+            <div class="btn-group">
+              <button class="btn" onclick="exportTable('客户档案')"><i class="fas fa-download"></i> 导出Excel</button>
+              <button class="btn btn-primary" onclick="openDialog('customer')"><i class="fas fa-plus"></i> 新增客户</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>序号</th><th>客户编号</th><th>名称</th><th>类型</th><th>纳税人类型</th><th>统一社会信用代码</th><th>开户行</th><th>联系人</th><th>电话</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>C0001A</td><td><strong>某某科技有限公司</strong></td><td><span class="tag tag-primary">供应商</span></td><td>一般纳税人</td><td>91110108MA01XXXXX</td><td>中国银行北京分行</td><td>张三</td><td>13800001111</td></tr>
+                  <tr><td>2</td><td>C0002B</td><td><strong>某某集团财务公司</strong></td><td><span class="tag tag-success">客户</span></td><td>一般纳税人</td><td>91310000MA1XXXXXX</td><td>工商银行上海分行</td><td>李四</td><td>13900002222</td></tr>
+                  <tr><td>3</td><td>C0003C</td><td><strong>某某咨询服务公司</strong></td><td><span class="tag tag-primary">供应商</span></td><td>小规模纳税人</td><td>91440101MA2XXXXXX</td><td>建设银行广州分行</td><td>王五</td><td>13700003333</td></tr>
+                  <tr><td>4</td><td>C0004D</td><td><strong>某某电子科技公司</strong></td><td><span class="tag tag-success">客户</span></td><td>一般纳税人</td><td>91320211MA3XXXXXX</td><td>农业银行深圳分行</td><td>赵六</td><td>13600004444</td></tr>
+                  <tr><td>5</td><td>C0005E</td><td><strong>某某软件技术公司</strong></td><td><span class="tag tag-primary">供应商</span></td><td>一般纳税人</td><td>91110108MA5XXXXXX</td><td>招商银行北京分行</td><td>钱七</td><td>13500005555</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="page-info">共 5 条</span>
+              <button class="page-btn active">1</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Project ===== -->
+      <div class="page" id="page-project">
+        <div class="stats-row">
+          <div class="stat-card-sm"><div class="stat-label">进行中项目</div><div class="stat-value blue">15</div></div>
+          <div class="stat-card-sm"><div class="stat-label">已完成项目</div><div class="stat-value green">21</div></div>
+          <div class="stat-card-sm"><div class="stat-label">项目总预算</div><div class="stat-value orange">¥8,500,000</div></div>
+          <div class="stat-card-sm"><div class="stat-label">已开票金额</div><div class="stat-value purple">¥3,200,000</div></div>
+        </div>
+        <div class="el-card">
+          <div class="card-header">
+            <span class="title">项目列表</span>
+            <div class="btn-group">
+              <button class="btn" onclick="exportTable('项目列表')"><i class="fas fa-download"></i> 导出Excel</button>
+              <button class="btn btn-primary" onclick="openDialog('project')"><i class="fas fa-plus"></i> 新建项目</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>序号</th><th>项目编号</th><th>项目名称</th><th>负责人</th><th>预算金额</th><th>已开票金额</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td class="clickable" onclick="showProjectDetail(0)">PRJ-2026-001</td><td><strong>某某企业ERP系统开发</strong></td><td>张三</td><td>¥1,200,000.00</td><td>¥480,000.00</td><td><span class="tag tag-primary">进行中</span></td><td><button class="btn btn-sm" onclick="showProjectDetail(0)">详情</button></td></tr>
+                  <tr><td>2</td><td class="clickable" onclick="showProjectDetail(1)">PRJ-2026-002</td><td><strong>智能财税平台升级</strong></td><td>李四</td><td>¥800,000.00</td><td>¥800,000.00</td><td><span class="tag tag-success">已完成</span></td><td><button class="btn btn-sm" onclick="showProjectDetail(1)">详情</button></td></tr>
+                  <tr><td>3</td><td class="clickable" onclick="showProjectDetail(2)">PRJ-2026-003</td><td><strong>进销项发票管理系统</strong></td><td>王五</td><td>¥500,000.00</td><td>¥120,000.00</td><td><span class="tag tag-primary">进行中</span></td><td><button class="btn btn-sm" onclick="showProjectDetail(2)">详情</button></td></tr>
+                  <tr><td>4</td><td class="clickable" onclick="showProjectDetail(3)">PRJ-2026-004</td><td><strong>某某银行数据中台建设</strong></td><td>赵六</td><td>¥3,000,000.00</td><td>¥900,000.00</td><td><span class="tag tag-primary">进行中</span></td><td><button class="btn btn-sm" onclick="showProjectDetail(3)">详情</button></td></tr>
+                  <tr><td>5</td><td class="clickable" onclick="showProjectDetail(4)">PRJ-2026-005</td><td><strong>某某学校智慧校园系统</strong></td><td>钱七</td><td>¥1,500,000.00</td><td>¥1,500,000.00</td><td><span class="tag tag-success">已完成</span></td><td><button class="btn btn-sm" onclick="showProjectDetail(4)">详情</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Invoice ===== -->
+      <div class="page" id="page-invoice">
+        <div class="stats-row-5">
+          <div class="stat-card-sm"><div class="stat-label">发票总数</div><div class="stat-value blue">512</div></div>
+          <div class="stat-card-sm"><div class="stat-label">进项发票</div><div class="stat-value blue">328</div></div>
+          <div class="stat-card-sm"><div class="stat-label">销项发票</div><div class="stat-value orange">184</div></div>
+          <div class="stat-card-sm"><div class="stat-label">进项税额</div><div class="stat-value green">¥389,500.00</div></div>
+          <div class="stat-card-sm"><div class="stat-label">销项税额</div><div class="stat-value orange">¥215,800.00</div></div>
+        </div>
+        <div class="el-card">
+          <div class="card-header">
+            <span class="title">发票台账</span>
+            <div class="btn-group">
+              <button class="btn" onclick="exportTable('发票台账')"><i class="fas fa-download"></i> 导出Excel</button>
+              <button class="btn btn-primary" onclick="openDialog('invoice')"><i class="fas fa-plus"></i> 新增</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <select><option>全部类型</option><option>进项</option><option>销项</option></select>
+              <input type="text" placeholder="搜索发票号/公司名...">
+              <select><option>全部状态</option><option>已认证</option><option>未认证</option><option>正常</option><option>红冲</option><option>作废</option><option>不可抵扣</option></select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>序号</th><th>类型</th><th>发票代码</th><th>发票号码</th><th>销售方</th><th>购买方</th><th>开票日期</th><th>不含税金额</th><th>税额</th><th>价税合计</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td><span class="tag tag-primary">进项</span></td><td>3100220001</td><td>INV-2026-001</td><td>某某科技有限公司</td><td>我方公司</td><td>2026-07-01</td><td>¥50,000.00</td><td>¥6,500.00</td><td>¥56,500.00</td><td><span class="tag tag-success">已认证</span></td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>2</td><td><span class="tag tag-warning">销项</span></td><td>3100220002</td><td>INV-2026-002</td><td>我方公司</td><td>某某集团财务公司</td><td>2026-07-05</td><td>¥80,000.00</td><td>¥10,400.00</td><td>¥90,400.00</td><td><span class="tag tag-primary">正常</span></td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>3</td><td><span class="tag tag-primary">进项</span></td><td>3100220003</td><td>INV-2026-003</td><td>某某咨询服务公司</td><td>我方公司</td><td>2026-07-08</td><td>¥12,000.00</td><td>¥720.00</td><td>¥12,720.00</td><td><span class="tag tag-info">未认证</span></td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>4</td><td><span class="tag tag-warning">销项</span></td><td>3100220004</td><td>INV-2026-004</td><td>我方公司</td><td>某某电子科技公司</td><td>2026-07-10</td><td>¥35,000.00</td><td>¥4,550.00</td><td>¥39,550.00</td><td><span class="tag tag-danger">作废</span></td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>5</td><td><span class="tag tag-primary">进项</span></td><td>3100220005</td><td>INV-2026-005</td><td>某某软件技术公司</td><td>我方公司</td><td>2026-07-12</td><td>¥28,000.00</td><td>¥3,640.00</td><td>¥31,640.00</td><td><span class="tag tag-success">已认证</span></td><td><button class="btn btn-sm">操作</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="page-info">共 5 条</span>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Transaction ===== -->
+      <div class="page" id="page-transaction">
+        <div class="stats-row">
+          <div class="stat-card-sm"><div class="stat-label">收入总额</div><div class="stat-value green">¥2,680,000.00</div></div>
+          <div class="stat-card-sm"><div class="stat-label">支出总额</div><div class="stat-value orange">¥1,850,000.00</div></div>
+          <div class="stat-card-sm"><div class="stat-label">收支差额</div><div class="stat-value green">¥830,000.00</div></div>
+          <div class="stat-card-sm"><div class="stat-label">流水笔数</div><div class="stat-value blue">156</div></div>
+        </div>
+        <div class="el-card">
+          <div class="card-header">
+            <span class="title">收支流水</span>
+            <div class="btn-group">
+              <button class="btn" onclick="exportTable('收支流水')"><i class="fas fa-download"></i> 导出Excel</button>
+              <button class="btn btn-primary" onclick="openDialog('transaction')"><i class="fas fa-plus"></i> 新增</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <select><option>全部类型</option><option>收入</option><option>支出</option></select>
+              <input type="text" placeholder="搜索客户/发票号/流水号...">
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>序号</th><th>流水号</th><th>类型</th><th>购买方</th><th>销售方</th><th>关联发票号</th><th>金额</th><th>日期</th><th>状态</th><th>备注</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>TR-2026-001</td><td><span class="tag tag-success">收入</span></td><td><strong>某某集团财务公司</strong></td><td><strong>我方公司</strong></td><td>INV-2026-002</td><td class="text-green">¥90,400.00</td><td>2026-07-05</td><td><span class="tag tag-success">已完成</span></td><td>项目首付款</td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>2</td><td>TR-2026-002</td><td><span class="tag tag-warning">支出</span></td><td><strong>我方公司</strong></td><td><strong>某某科技有限公司</strong></td><td>INV-2026-001</td><td class="text-orange">¥56,500.00</td><td>2026-07-01</td><td><span class="tag tag-success">已完成</span></td><td>采购服务器</td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>3</td><td>TR-2026-003</td><td><span class="tag tag-success">收入</span></td><td><strong>某某电子科技公司</strong></td><td><strong>我方公司</strong></td><td>-</td><td class="text-green">¥200,000.00</td><td>2026-07-10</td><td><span class="tag tag-warning">待确认</span></td><td>服务费</td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>4</td><td>TR-2026-004</td><td><span class="tag tag-warning">支出</span></td><td><strong>我方公司</strong></td><td><strong>某某咨询服务公司</strong></td><td>INV-2026-003</td><td class="text-orange">¥12,720.00</td><td>2026-07-08</td><td><span class="tag tag-success">已完成</span></td><td>咨询费</td><td><button class="btn btn-sm">操作</button></td></tr>
+                  <tr><td>5</td><td>TR-2026-005</td><td><span class="tag tag-success">收入</span></td><td><strong>某某学校</strong></td><td><strong>我方公司</strong></td><td>-</td><td class="text-green">¥500,000.00</td><td>2026-07-15</td><td><span class="tag tag-success">已完成</span></td><td>项目进度款</td><td><button class="btn btn-sm">操作</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="page-info">共 5 条</span>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== OCR Import ===== -->
+      <div class="page" id="page-ocr">
+        <div class="el-card">
+          <div class="card-header">
+            <span class="title"><i class="fas fa-microchip"></i> 发票OCR识别导入</span>
+          </div>
+          <div class="card-body">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>将文件拖到此处，或 <span class="highlight">点击上传</span></p>
+              <p class="tip">支持 JPG / PNG / PDF 格式的增值税专用发票、普通发票</p>
+              <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.bmp,.pdf" multiple style="display:none" onchange="handleFileSelect(event)">
+            </div>
+            <div id="ocrFileList" class="file-list-wrapper" style="display:none;">
+              <div class="file-list-header">
+                <span id="ocrFileCount">已选择文件 (0)</span>
+                <button class="btn btn-sm btn-danger" onclick="clearOcrFiles()">清空</button>
+              </div>
+              <div class="file-grid" id="ocrFileGrid"></div>
+            </div>
+            <div class="btn-center">
+              <button class="btn btn-primary" id="ocrStartBtn" disabled onclick="startOcr()"><i class="fas fa-magic"></i> 开始识别</button>
+            </div>
+          </div>
+        </div>
+        <div class="el-card" id="ocrResultCard" style="display:none;">
+          <div class="card-header flex-between">
+            <span class="title">识别结果预览</span>
+            <button class="btn btn-success" onclick="alert('模拟保存成功！已导入 2 张发票')"><i class="fas fa-check"></i> 一键保存</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>类型</th><th>发票号码</th><th>开票日期</th><th>销售方</th><th>购买方</th><th>不含税金额</th><th>税额</th><th>价税合计</th><th>发票类型</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="tag tag-primary">进项</span></td><td>INV-OCR-001</td><td>2026-07-15</td><td>某某供应商</td><td>我方公司</td><td>¥15,000.00</td><td>¥1,950.00</td><td>¥16,950.00</td><td>增值税专用发票</td><td><button class="btn btn-sm btn-danger">删除</button></td></tr>
+                  <tr><td><span class="tag tag-primary">进项</span></td><td>INV-OCR-002</td><td>2026-07-14</td><td>某某科技公司</td><td>我方公司</td><td>¥22,500.00</td><td>¥2,925.00</td><td>¥25,425.00</td><td>增值税专用发票</td><td><button class="btn btn-sm btn-danger">删除</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Employee ===== -->
+      <div class="page" id="page-employee">
+        <div class="el-card">
+          <div class="card-header">
+            <span class="title">员工管理</span>
+            <button class="btn btn-primary" onclick="openDialog('employee')"><i class="fas fa-plus"></i> 新增员工</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>序号</th><th>用户名</th><th>昵称</th><th>角色</th><th>状态</th><th>最后登录时间</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>admin</td><td>管理员</td><td><span class="tag tag-primary">admin</span></td><td><span class="tag tag-success">启用</span></td><td>2026-07-17 09:30:00</td><td><button class="btn btn-sm btn-warning" disabled>禁用</button><button class="btn btn-sm btn-danger" disabled>删除</button></td></tr>
+                  <tr><td>2</td><td>zhangsan</td><td>张三</td><td><span class="tag tag-success">finance</span></td><td><span class="tag tag-success">启用</span></td><td>2026-07-16 17:20:00</td><td><button class="btn btn-sm btn-warning">禁用</button><button class="btn btn-sm btn-danger">删除</button></td></tr>
+                  <tr><td>3</td><td>lisi</td><td>李四</td><td><span class="tag tag-info">viewer</span></td><td><span class="tag tag-success">启用</span></td><td>2026-07-16 09:00:00</td><td><button class="btn btn-sm btn-warning">禁用</button><button class="btn btn-sm btn-danger">删除</button></td></tr>
+                  <tr><td>4</td><td>wangwu</td><td>王五</td><td><span class="tag tag-success">finance</span></td><td><span class="tag tag-danger">禁用</span></td><td>2026-07-10 14:30:00</td><td><button class="btn btn-sm btn-success">启用</button><button class="btn btn-sm btn-danger">删除</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Operation Log ===== -->
+      <div class="page" id="page-operation-log">
+        <div class="el-card">
+          <div class="card-header flex-between">
+            <span class="title">操作日志</span>
+            <div class="btn-group">
+              <select><option>全部模块</option><option>客户</option><option>项目</option><option>发票</option><option>支出</option><option>回款</option><option>员工</option><option>登录</option></select>
+              <select><option>全部操作</option><option>新增</option><option>编辑</option><option>删除</option><option>登录</option><option>导入</option></select>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>序号</th><th>操作人</th><th>操作类型</th><th>模块</th><th>操作内容</th><th>操作时间</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>管理员</td><td><span class="tag tag-success">新增</span></td><td><span class="tag tag-info">客户</span></td><td>新增客户「某某科技有限公司」</td><td>2026-07-17 09:30:00</td></tr>
+                  <tr><td>2</td><td>张三</td><td><span class="tag tag-primary">编辑</span></td><td><span class="tag tag-info">项目</span></td><td>修改项目「ERP系统开发」预算为1,200,000</td><td>2026-07-17 09:15:12</td></tr>
+                  <tr><td>3</td><td>管理员</td><td><span class="tag tag-warning">导入</span></td><td><span class="tag tag-info">发票</span></td><td>批量导入5张进项发票</td><td>2026-07-16 17:20:35</td></tr>
+                  <tr><td>4</td><td>李四</td><td><span class="tag tag-info">登录</span></td><td><span class="tag tag-info">登录</span></td><td>用户登录系统</td><td>2026-07-16 09:00:00</td></tr>
+                  <tr><td>5</td><td>管理员</td><td><span class="tag tag-danger">删除</span></td><td><span class="tag tag-info">发票</span></td><td>删除发票号「INV-2024-001」</td><td>2026-07-15 14:30:22</td></tr>
+                  <tr><td>6</td><td>张三</td><td><span class="tag tag-success">新增</span></td><td><span class="tag tag-info">回款</span></td><td>新增回款记录，金额¥200,000</td><td>2026-07-15 11:00:18</td></tr>
+                  <tr><td>7</td><td>管理员</td><td><span class="tag tag-primary">编辑</span></td><td><span class="tag tag-info">员工</span></td><td>修改员工「张三」角色为财务录入</td><td>2026-07-14 16:45:00</td></tr>
+                  <tr><td>8</td><td>管理员</td><td><span class="tag tag-success">新增</span></td><td><span class="tag tag-info">项目</span></td><td>新增项目「银行数据中台建设」</td><td>2026-07-14 10:00:00</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="page-info">共 8 条</span>
+              <button class="page-btn active">1</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIALOG ==================== -->
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog">
+    <div class="dialog-header">
+      <h3 id="dialogTitle">新增</h3>
+      <span class="dialog-close" onclick="closeDialog()">&times;</span>
+    </div>
+    <div class="dialog-body" id="dialogBody">
+      <!-- Dynamic content -->
+    </div>
+    <div class="dialog-footer">
+      <button class="btn" onclick="closeDialog()">取消</button>
+      <button class="btn btn-primary" onclick="saveDialog()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 快捷入口自定义对话框 ==================== -->
+<div class="dialog-overlay" id="quickCustomizeOverlay">
+  <div class="dialog" style="width:550px;">
+    <div class="dialog-header">
+      <h3>自定义快捷入口</h3>
+      <span class="dialog-close" onclick="closeQuickCustomize()">&times;</span>
+    </div>
+    <div class="dialog-body" id="quickCustomizeBody">
+      <p style="font-size:13px;color:#999;margin-bottom:12px;">勾选你想要显示在快捷入口的模块，拖拽可调整顺序。</p>
+      <div id="quickCustomizeList"></div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn" onclick="closeQuickCustomize()">取消</button>
+      <button class="btn btn-primary" onclick="saveQuickCustomize()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 待办管理对话框 ==================== -->
+<div class="dialog-overlay" id="todoManageOverlay">
+  <div class="dialog" style="width:600px;">
+    <div class="dialog-header">
+      <h3>待办事项管理</h3>
+      <div>
+        <button class="btn btn-sm btn-primary" onclick="addTodo()" style="margin-right:8px;"><i class="fas fa-plus"></i> 新增</button>
+        <span class="dialog-close" onclick="closeTodoManage()">&times;</span>
+      </div>
+    </div>
+    <div class="dialog-body" id="todoManageBody" style="max-height:400px;overflow-y:auto;padding:8px 16px;">
+      <div style="text-align:center;padding:40px;color:#ccc;" id="todoEmptyHint">暂无待办事项，点击右上角「新增」添加</div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-primary" onclick="closeTodoManage()">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PROJECT DETAIL DIALOG ==================== -->
+<div class="dialog-overlay" id="detailOverlay">
+  <div class="dialog" style="width: 90%; max-width: 1000px;">
+    <div class="dialog-header">
+      <h3 id="detailTitle">项目详情</h3>
+      <span class="dialog-close" onclick="closeDetail()">&times;</span>
+    </div>
+    <div class="dialog-body" id="detailBody">
+      <!-- Dynamic content -->
+    </div>
+    <div class="dialog-footer">
+      <button class="btn" onclick="closeDetail()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ========== DATA ==========
+  const pageTitles = {
+    'dashboard': '工作台',
+    'customer': '客户管理',
+    'project': '项目管理',
+    'invoice': '发票台账',
+    'transaction': '收支流水',
+    'ocr': 'OCR识别导入',
+    'employee': '员工管理',
+    'operation-log': '操作日志'
+  };
+
+  const projectData = [
+    { name: '某某企业ERP系统开发', manager: '张三', status: '进行中', budget: 1200000, invoiced: 480000, receiveContract: 1500000, expenseContract: 1200000, received: 480000, paid: 200000 },
+    { name: '智能财税平台升级', manager: '李四', status: '已完成', budget: 800000, invoiced: 800000, receiveContract: 800000, expenseContract: 600000, received: 800000, paid: 580000 },
+    { name: '进销项发票管理系统', manager: '王五', status: '进行中', budget: 500000, invoiced: 120000, receiveContract: 600000, expenseContract: 500000, received: 120000, paid: 50000 },
+    { name: '某某银行数据中台建设', manager: '赵六', status: '进行中', budget: 3000000, invoiced: 900000, receiveContract: 3500000, expenseContract: 3000000, received: 900000, paid: 350000 },
+    { name: '某某学校智慧校园系统', manager: '钱七', status: '已完成', budget: 1500000, invoiced: 1500000, receiveContract: 1500000, expenseContract: 1200000, received: 1500000, paid: 1150000 }
+  ];
+
+  let currentDialogType = '';
+  let ocrFiles = [];
+
+  // ========== AUTH ==========
+  function handleLogin() {
+    document.getElementById('loginPage').classList.remove('show');
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('mainLayout').style.display = 'flex';
+    document.getElementById('userName').textContent = '管理员';
+    document.getElementById('userAvatar').textContent = '管';
+  }
+
+  function handleLogout() {
+    document.getElementById('dropdownMenu').classList.remove('show');
+    document.getElementById('mainLayout').style.display = 'none';
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('loginPage').classList.add('show');
+  }
+
+  // ========== NAVIGATION ==========
+  function switchPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.querySelector(`.menu-item[data-page="${page}"]`).classList.add('active');
+    document.getElementById('pageTitle').textContent = pageTitles[page] || page;
+  }
+
+  // ========== DROPDOWN ==========
+  function toggleDropdown() {
+    document.getElementById('dropdownMenu').classList.toggle('show');
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#userDropdown')) {
+      document.getElementById('dropdownMenu').classList.remove('show');
+    }
+  });
+
+  // ========== DIALOG ==========
+  function openDialog(type) {
+    currentDialogType = type;
+    const titles = { customer: '新增客户', project: '新建项目', invoice: '新增发票', transaction: '新增流水', employee: '新增员工' };
+    document.getElementById('dialogTitle').textContent = titles[type] || '新增';
+    
+    let body = '';
+    if (type === 'customer') {
+      body = `
+        <div class="form-group"><label>客户编号</label><input value="C${Date.now().toString(36).toUpperCase().slice(-6)}"></div>
+        <div class="form-group"><label>名称</label><input placeholder="请输入客户名称"></div>
+        <div class="form-group"><label>类型</label><select><option value="supplier">供应商（上游）</option><option value="customer" selected>客户（下游）</option></select></div>
+        <div class="form-group"><label>纳税人类型</label><select><option selected>一般纳税人</option><option>小规模纳税人</option></select></div>
+        <div class="form-group"><label>统一社会信用代码</label><input placeholder="请输入信用代码"></div>
+        <div class="form-group"><label>开户银行</label><input placeholder="请输入开户行"></div>
+        <div class="form-row">
+          <div class="form-group"><label>联系人</label><input placeholder="请输入联系人"></div>
+          <div class="form-group"><label>联系电话</label><input placeholder="请输入电话"></div>
+        </div>`;
+    } else if (type === 'project') {
+      body = `
+        <div class="form-row">
+          <div class="form-group"><label>项目编号</label><input value="PRJ-${Date.now().toString(36).toUpperCase().slice(-4)}" disabled></div>
+          <div class="form-group"><label>项目名称</label><input placeholder="请输入项目名称"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>负责人</label><input placeholder="请输入负责人"></div>
+          <div class="form-group"><label>状态</label><select><option>待启动</option><option selected>进行中</option><option>已完成</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>预算金额</label><input type="number" placeholder="0"></div>
+          <div class="form-group"><label>已开票金额</label><input type="number" placeholder="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>回款合同额</label><input type="number" placeholder="0"></div>
+          <div class="form-group"><label>支出合同额</label><input type="number" placeholder="0"></div>
+        </div>
+        <div class="form-group"><label>备注</label><textarea rows="2" placeholder="请输入备注"></textarea></div>`;
+    } else if (type === 'invoice') {
+      body = `
+        <div class="form-row">
+          <div class="form-group"><label>发票类型</label><select><option selected>进项</option><option>销项</option></select></div>
+          <div class="form-group"><label>开票日期</label><input type="date"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>发票代码</label><input placeholder="请输入发票代码"></div>
+          <div class="form-group"><label>发票号码</label><input placeholder="请输入发票号码"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>销售方</label><input placeholder="请输入销售方名称"></div>
+          <div class="form-group"><label>购买方</label><input placeholder="请输入购买方名称"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>不含税金额</label><input type="number" placeholder="0.00"></div>
+          <div class="form-group"><label>税额</label><input type="number" placeholder="0.00"></div>
+        </div>
+        <div class="form-group"><label>价税合计</label><input type="number" placeholder="0.00"></div>
+        <div class="form-group"><label>状态</label><select><option>正常</option><option>已认证</option><option>未认证</option><option>红冲</option><option>作废</option></select></div>`;
+    } else if (type === 'transaction') {
+      body = `
+        <div class="form-row">
+          <div class="form-group"><label>类型</label><select><option selected>收入</option><option>支出</option></select></div>
+          <div class="form-group"><label>日期</label><input type="date"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>购买方</label><input placeholder="请输入购买方"></div>
+          <div class="form-group"><label>销售方</label><input placeholder="请输入销售方"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>金额</label><input type="number" placeholder="0.00"></div>
+          <div class="form-group"><label>状态</label><select><option selected>已完成</option><option>待确认</option><option>已取消</option></select></div>
+        </div>
+        <div class="form-group"><label>备注</label><textarea rows="2" placeholder="请输入备注"></textarea></div>`;
+    } else if (type === 'employee') {
+      body = `
+        <div class="form-group"><label>用户名</label><input placeholder="请输入用户名"></div>
+        <div class="form-group"><label>密码</label><input type="password" placeholder="请输入密码"></div>
+        <div class="form-group"><label>昵称</label><input placeholder="请输入昵称"></div>
+        <div class="form-group"><label>角色</label><select><option selected>财务录入</option><option>管理员</option><option>普通查看</option></select></div>`;
+    }
+    document.getElementById('dialogBody').innerHTML = body;
+    document.getElementById('dialogOverlay').classList.add('show');
+  }
+
+  function closeDialog() {
+    document.getElementById('dialogOverlay').classList.remove('show');
+  }
+
+  function saveDialog() {
+    alert('模拟保存成功！' + (pageTitles[currentDialogType] || '操作') + '已更新');
+    closeDialog();
+  }
+
+  // ========== PROJECT DETAIL ==========
+  function showProjectDetail(index) {
+    const p = projectData[index];
+    if (!p) return;
+    document.getElementById('detailTitle').textContent = p.name + ' - 项目详情';
+    document.getElementById('detailBody').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f5f7fa;border-radius:6px;margin-bottom:16px;">
+        <div>
+          <strong style="font-size:18px;">${p.name}</strong>
+          <span style="margin:0 12px;color:#999;">负责人：${p.manager}</span>
+          <span class="tag ${p.status === '进行中' ? 'tag-primary' : 'tag-success'}">${p.status}</span>
+        </div>
+        <div><span style="color:#999;font-size:13px;">已回款金额：</span><strong style="font-size:20px;color:var(--warning);">¥${p.received.toLocaleString()}.00</strong></div>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-item" style="border-left:3px solid #9b59b6;">
+          <div class="s-icon" style="background:#9b59b6;"><i class="fas fa-file-invoice"></i></div>
+          <div><div class="s-label">合同总额（回款端）</div><div class="s-value" style="color:#9b59b6;">¥${p.receiveContract.toLocaleString()}.00</div></div>
+        </div>
+        <div class="summary-item" style="border-left:3px solid var(--warning);">
+          <div class="s-icon" style="background:var(--warning);"><i class="fas fa-money-bill-wave"></i></div>
+          <div><div class="s-label">已回款金额</div><div class="s-value" style="color:var(--warning);">¥${p.received.toLocaleString()}.00</div></div>
+        </div>
+        <div class="summary-item" style="border-left:3px solid var(--primary);">
+          <div class="s-icon" style="background:var(--primary);"><i class="fas fa-file-invoice"></i></div>
+          <div><div class="s-label">合同总额（支出端）</div><div class="s-value" style="color:var(--primary);">¥${p.expenseContract.toLocaleString()}.00</div></div>
+        </div>
+        <div class="summary-item" style="border-left:3px solid var(--success);">
+          <div class="s-icon" style="background:var(--success);"><i class="fas fa-money-bill-wave"></i></div>
+          <div><div class="s-label">已支付金额</div><div class="s-value" style="color:var(--success);">¥${p.paid.toLocaleString()}.00</div></div>
+        </div>
+        <div class="summary-item">
+          <div class="s-icon" style="background:var(--info);"><i class="fas fa-chart-line"></i></div>
+          <div><div class="s-label">剩余回款金额</div><div class="s-value" style="color:${(p.received - p.paid) >= 0 ? 'var(--success)' : 'var(--danger)'};">¥${(p.received - p.paid).toLocaleString()}.00</div></div>
+        </div>
+        <div class="summary-item" style="border-left:3px solid var(--danger);">
+          <div class="s-icon" style="background:var(--danger);"><i class="fas fa-money-bill-wave"></i></div>
+          <div><div class="s-label">未支付金额</div><div class="s-value" style="color:var(--danger);">¥${(p.expenseContract - p.paid).toLocaleString()}.00</div></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <h4 style="margin-bottom:8px;font-size:14px;">项目预算使用情况</h4>
+        <div style="display:flex;gap:16px;font-size:13px;color:#666;">
+          <span>预算金额：<strong>¥${p.budget.toLocaleString()}.00</strong></span>
+          <span>已开票：<strong>¥${p.invoiced.toLocaleString()}.00</strong></span>
+          <span>开票占比：<strong>${(p.invoiced / p.budget * 100).toFixed(1)}%</strong></span>
+        </div>
+        <div style="height:8px;background:#e8e8e8;border-radius:4px;margin-top:8px;">
+          <div style="height:100%;width:${Math.min(p.invoiced / p.budget * 100, 100)}%;background:var(--primary);border-radius:4px;transition:width 0.5s;"></div>
+        </div>
+      </div>`;
+    document.getElementById('detailOverlay').classList.add('show');
+  }
+
+  function closeDetail() {
+    document.getElementById('detailOverlay').classList.remove('show');
+  }
+
+  // ========== OCR ==========
+  function handleFileSelect(e) {
+    const files = Array.from(e.target.files);
+    files.forEach(f => {
+      if (!ocrFiles.some(x => x.name === f.name)) {
+        ocrFiles.push(f);
+      }
+    });
+    renderOcrFiles();
+  }
+
+  function renderOcrFiles() {
+    const grid = document.getElementById('ocrFileGrid');
+    const wrapper = document.getElementById('ocrFileList');
+    const count = document.getElementById('ocrFileCount');
+    const btn = document.getElementById('ocrStartBtn');
+    
+    if (ocrFiles.length === 0) {
+      wrapper.style.display = 'none';
+      btn.disabled = true;
+      return;
+    }
+    wrapper.style.display = 'block';
+    btn.disabled = false;
+    count.textContent = `已选择文件 (${ocrFiles.length})`;
+    grid.innerHTML = ocrFiles.map((f, i) => `
+      <div class="file-item">
+        <i class="fas fa-file-alt"></i>
+        <span>${f.name}</span>
+        <span class="del-file" onclick="removeOcrFile(${i})"><i class="fas fa-times"></i></span>
+      </div>
+    `).join('');
+  }
+
+  function removeOcrFile(index) {
+    ocrFiles.splice(index, 1);
+    renderOcrFiles();
+  }
+
+  function clearOcrFiles() {
+    ocrFiles = [];
+    renderOcrFiles();
+  }
+
+  function startOcr() {
+    document.getElementById('ocrResultCard').style.display = 'block';
+    alert(`模拟OCR识别完成！共识别 ${ocrFiles.length} 张发票`);
+  }
+
+  // ========== QUICK ACTION CUSTOMIZATION ==========
+  const allQuickActions = [
+    { id: 'customer', label: '新增客户', desc: '快速录入客户信息', icon: 'fa-building', color: 'linear-gradient(135deg,#409eff,#66b1ff)', page: 'customer' },
+    { id: 'project', label: '新建项目', desc: '创建新的项目', icon: 'fa-folder', color: 'linear-gradient(135deg,#67c23a,#85ce61)', page: 'project' },
+    { id: 'invoice', label: '新增发票', desc: '录入发票信息', icon: 'fa-file-invoice', color: 'linear-gradient(135deg,#e6a23c,#ebb563)', page: 'invoice' },
+    { id: 'ocr', label: 'OCR导入', desc: '扫描识别发票', icon: 'fa-microchip', color: 'linear-gradient(135deg,#9b59b6,#bb86fc)', page: 'ocr' },
+    { id: 'transaction', label: '新增流水', desc: '记录收支流水', icon: 'fa-list', color: 'linear-gradient(135deg,#f56c6c,#f89898)', page: 'transaction' },
+    { id: 'employee', label: '员工管理', desc: '管理员工账号', icon: 'fa-users', color: 'linear-gradient(135deg,#00bcd4,#4dd0e1)', page: 'employee' },
+    { id: 'operation-log', label: '操作日志', desc: '查看系统日志', icon: 'fa-clipboard-list', color: 'linear-gradient(135deg,#607d8b,#90a4ae)', page: 'operation-log' },
+    { id: 'announcement', label: '系统公告', desc: '查看发布公告', icon: 'fa-bullhorn', color: 'linear-gradient(135deg,#ff5722,#ff8a65)', page: 'dashboard' }
+  ];
+
+  function getDefaultQuickActions() {
+    return ['customer', 'project', 'invoice', 'ocr', 'transaction'];
+  }
+
+  function getQuickActionSettings() {
+    try {
+      const stored = localStorage.getItem('quickActions');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return getDefaultQuickActions();
+  }
+
+  function saveQuickActionSettings(ids) {
+    localStorage.setItem('quickActions', JSON.stringify(ids));
+  }
+
+  function renderQuickActions() {
+    const container = document.getElementById('quickActionsContainer');
+    const selectedIds = getQuickActionSettings();
+    const selected = allQuickActions.filter(a => selectedIds.includes(a.id));
+    // Sort by the order in selectedIds
+    selected.sort((a, b) => selectedIds.indexOf(a.id) - selectedIds.indexOf(b.id));
+
+    if (selected.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;font-size:13px;">暂无快捷入口</div>';
+      return;
+    }
+
+    container.innerHTML = selected.map(a => `
+      <div class="quick-action" onclick="switchPage('${a.page}')">
+        <div class="qa-icon" style="background:${a.color};"><i class="fas ${a.icon}"></i></div>
+        <div class="qa-text">
+          <span class="qa-label">${a.label}</span>
+        </div>
+      </div>
+    `).join('') + `
+      <div class="quick-action" onclick="openQuickCustomize()" title="添加快捷入口" style="border:1px dashed #dcdfe6;">
+        <div class="qa-icon" style="background:#f0f2f5;border:1px dashed #ccc;"><i class="fas fa-plus" style="color:#999;"></i></div>
+        <div class="qa-text">
+          <span class="qa-label" style="color:#999;">添加</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function openQuickCustomize() {
+    const selectedIds = getQuickActionSettings();
+    const list = document.getElementById('quickCustomizeList');
+    list.innerHTML = allQuickActions.map((a, i) => {
+      const checked = selectedIds.includes(a.id) ? 'checked' : '';
+      return `
+        <div class="qc-item" data-id="${a.id}" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #ebeef5;border-radius:6px;margin-bottom:8px;background:#fff;cursor:grab;">
+          <div style="cursor:grab;color:#ccc;"><i class="fas fa-grip-lines"></i></div>
+          <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;background:${a.color};flex-shrink:0;"><i class="fas ${a.icon}" style="font-size:14px;"></i></div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:500;">${a.label}</div>
+            <div style="font-size:12px;color:#999;">${a.desc}</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;">
+            <input type="checkbox" class="qc-checkbox" data-id="${a.id}" ${checked} style="width:18px;height:18px;accent-color:var(--primary);">
+            <span style="font-size:12px;color:#999;">显示</span>
+          </label>
+        </div>
+      `;
+    }).join('');
+    // Add drag behavior
+    addDragBehavior();
+    document.getElementById('quickCustomizeOverlay').classList.add('show');
+  }
+
+  function addDragBehavior() {
+    const container = document.getElementById('quickCustomizeList');
+    let dragEl = null;
+    container.querySelectorAll('.qc-item').forEach(item => {
+      item.addEventListener('mousedown', function(e) {
+        if (e.target.closest('label') || e.target.closest('input')) return;
+        dragEl = this;
+        this.style.opacity = '0.5';
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', onDrop);
+      });
+    });
+    function onDrag(e) {
+      if (!dragEl) return;
+      const items = [...container.querySelectorAll('.qc-item')];
+      const rect = container.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      let insertBefore = null;
+      for (const item of items) {
+        if (item === dragEl) continue;
+        const r = item.getBoundingClientRect();
+        const mid = r.top - rect.top + r.height / 2;
+        if (y < mid) { insertBefore = item; break; }
+      }
+      if (insertBefore) container.insertBefore(dragEl, insertBefore);
+      else container.appendChild(dragEl);
+    }
+    function onDrop() {
+      if (dragEl) dragEl.style.opacity = '1';
+      dragEl = null;
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup', onDrop);
+    }
+  }
+
+  function saveQuickCustomize() {
+    const checks = document.querySelectorAll('.qc-checkbox:checked');
+    const ids = Array.from(checks).map(c => c.dataset.id);
+    // Preserve order from the list
+    const items = document.querySelectorAll('.qc-item');
+    const orderedIds = Array.from(items).map(item => item.dataset.id).filter(id => ids.includes(id));
+    saveQuickActionSettings(orderedIds);
+    renderQuickActions();
+    closeQuickCustomize();
+  }
+
+  function closeQuickCustomize() {
+    document.getElementById('quickCustomizeOverlay').classList.remove('show');
+  }
+
+  // ========== TODO MANAGEMENT ==========
+  const presetModules = ['客户', '项目', '发票', '流水', '员工', '登录', '回款', '支出', '公告'];
+
+  function getCustomModules() {
+    try {
+      const stored = localStorage.getItem('todoCustomModules');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return [];
+  }
+
+  function saveCustomModule(name) {
+    const modules = getCustomModules();
+    if (!modules.includes(name) && !presetModules.includes(name)) {
+      modules.push(name);
+      localStorage.setItem('todoCustomModules', JSON.stringify(modules));
+    }
+  }
+
+  function getAllModuleOptions() {
+    const customs = getCustomModules();
+    return [...presetModules, ...customs];
+  }
+
+  function getModuleSelectHTML(selected) {
+    const allModules = getAllModuleOptions();
+    let html = `<select id="todoInputModule" style="width:100%;" onchange="onModuleChange(this)">`;
+    html += `<option value="">请选择模块</option>`;
+    allModules.forEach(m => {
+      html += `<option value="${m}" ${selected === m ? 'selected' : ''}>${m}</option>`;
+    });
+    html += `<option value="__custom__" ${selected && !allModules.includes(selected) ? 'selected' : ''}>✏️ 自定义...</option>`;
+    html += `</select>`;
+    html += `<input id="todoInputModuleCustom" placeholder="请输入自定义模块名称" style="width:100%;margin-top:6px;display:${selected && !allModules.includes(selected) ? 'block' : 'none'};" value="${selected && !allModules.includes(selected) ? selected : ''}">`;
+    return html;
+  }
+
+  function onModuleChange(select) {
+    const customInput = document.getElementById('todoInputModuleCustom');
+    if (customInput) {
+      customInput.style.display = select.value === '__custom__' ? 'block' : 'none';
+    }
+  }
+
+  function getModuleValue() {
+    const select = document.getElementById('todoInputModule');
+    const customInput = document.getElementById('todoInputModuleCustom');
+    if (select.value === '__custom__') {
+      const val = customInput.value.trim();
+      if (val) saveCustomModule(val);
+      return val || '自定义';
+    }
+    return select.value || '通用';
+  }
+  function getDefaultTodos() {
+    const now = new Date().toISOString();
+    return [
+      { id: 1, title: '审核本月进项发票认证清单', due: '今日 18:00', module: '发票', priority: 'high', done: false, createdAt: now, progress: 70 },
+      { id: 2, title: '确认「ERP系统开发」项目进度款回款', due: '2026-07-20', module: '项目', priority: 'high', done: false, createdAt: now, progress: 40 },
+      { id: 3, title: '更新「某某科技」客户档案信息', due: '2026-07-18', module: '客户', priority: 'medium', done: false, createdAt: now, progress: 10 },
+      { id: 4, title: '导出本月收支流水报表', due: '2026-07-22', module: '流水', priority: 'medium', done: false, createdAt: now, progress: 85 },
+      { id: 5, title: '员工「王五」角色权限复查', due: '2026-07-25', module: '员工', priority: 'low', done: false, createdAt: now, progress: 0 }
+    ];
+  }
+
+  function getTodos() {
+    // Force reload defaults if version mismatch
+    const TODO_VERSION = 2;
+    const storedVersion = localStorage.getItem('todoVersion');
+    if (storedVersion != TODO_VERSION) {
+      localStorage.removeItem('todos');
+      localStorage.setItem('todoVersion', TODO_VERSION);
+      const defaults = getDefaultTodos();
+      localStorage.setItem('todos', JSON.stringify(defaults));
+      return defaults;
+    }
+    try {
+      const stored = localStorage.getItem('todos');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Migrate: add createdAt if missing
+        let changed = false;
+        parsed.forEach(t => {
+          if (!t.createdAt) {
+            t.createdAt = new Date().toISOString();
+            changed = true;
+          }
+          if (t.progress === undefined) {
+            t.progress = 0;
+            changed = true;
+          }
+        });
+        if (changed) localStorage.setItem('todos', JSON.stringify(parsed));
+        return parsed;
+      }
+    } catch(e) {}
+    const defaults = getDefaultTodos();
+    localStorage.setItem('todos', JSON.stringify(defaults));
+    return defaults;
+  }
+
+  function saveTodos(todos) {
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }
+
+  function calcProgressStatus(pct) {
+    if (pct >= 100) return 'success';
+    if (pct >= 70) return 'primary';
+    if (pct >= 30) return 'warning';
+    return 'danger';
+  }
+
+  const todoBorderColors = ['#409eff', '#67c23a', '#e6a23c', '#9b59b6', '#f56c6c', '#00bcd4', '#ff5722', '#607d8b'];
+
+  function renderTodoList() {
+    const container = document.getElementById('todoListContainer');
+    const label = document.getElementById('todoCountLabel');
+    const bannerCount = document.getElementById('bannerTodoCount');
+    const todos = getTodos();
+    const pending = todos.filter(t => !t.done);
+    label.textContent = '今日待办 ' + pending.length + ' 项';
+    if (bannerCount) bannerCount.textContent = pending.length;
+
+    if (todos.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#ccc;font-size:13px;">暂无待办事项</div>';
+      return;
+    }
+
+    const priorityMap = { high: '高', medium: '中', low: '低' };
+    const priorityClass = { high: 'high', medium: 'medium', low: 'low' };
+
+    container.innerHTML = '<ul class="todo-list">' + todos.map((t, i) => {
+      const pct = t.done ? 100 : (t.progress || 0);
+      const status = calcProgressStatus(pct);
+      const borderColor = todoBorderColors[i % todoBorderColors.length];
+      const barHtml = `<div class="todo-bar-wrap"><div class="todo-bar ${status}" style="width:${Math.max(pct, 2)}%;"></div></div>`;
+      return `
+      <li class="todo-item" style="border-left-color:${borderColor};">
+        <div class="todo-check ${t.done ? 'done' : ''}" onclick="toggleTodo(${t.id})"><i class="fas fa-check"></i></div>
+        <div class="todo-content">
+          <div class="todo-title ${t.done ? 'done-text' : ''}">${t.title}</div>
+          <div class="todo-meta">截止 ${t.due} · ${t.module}模块 · 进度 ${pct}%</div>
+        </div>
+        <span class="todo-priority ${priorityClass[t.priority]}">${priorityMap[t.priority]}</span>
+        ${barHtml}
+      </li>
+    `}).join('') + '</ul>';
+  }
+
+  function renderTodoManageList() {
+    const body = document.getElementById('todoManageBody');
+    const hint = document.getElementById('todoEmptyHint');
+    const todos = getTodos();
+
+    if (todos.length === 0) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:#ccc;">暂无待办事项，点击右上角「新增」添加</div>';
+      return;
+    }
+
+    const priorityMap = { high: '高', medium: '中', low: '低' };
+    const priorityClass = { high: 'high', medium: 'medium', low: 'low' };
+
+    body.innerHTML = todos.map((t, i) => `
+      <div class="todo-item" style="padding:10px 0;">
+        <div class="todo-check ${t.done ? 'done' : ''}" onclick="toggleTodo(${t.id});renderTodoManageList();renderTodoList();"><i class="fas fa-check"></i></div>
+        <div class="todo-content">
+          <div class="todo-title ${t.done ? 'done-text' : ''}" style="font-weight:500;">${t.title}</div>
+          <div class="todo-meta">截止 ${t.due} · ${t.module}模块</div>
+        </div>
+        <span class="todo-priority ${priorityClass[t.priority]}" style="margin-right:8px;">${priorityMap[t.priority]}</span>
+        <button class="btn btn-sm" onclick="editTodo(${t.id})" style="padding:3px 8px;font-size:12px;"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTodo(${t.id})" style="padding:3px 8px;font-size:12px;"><i class="fas fa-trash"></i></button>
+      </div>
+    `).join('');
+  }
+
+  function openTodoManage() {
+    renderTodoManageList();
+    document.getElementById('todoManageOverlay').classList.add('show');
+  }
+
+  function closeTodoManage() {
+    document.getElementById('todoManageOverlay').classList.remove('show');
+    renderTodoList();
+  }
+
+  function toggleTodo(id) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (t) { t.done = !t.done; saveTodos(todos); }
+    renderTodoList();
+    // Also update manage list if open
+    if (document.getElementById('todoManageOverlay').classList.contains('show')) {
+      renderTodoManageList();
+    }
+  }
+
+  // Add/Edit todo dialog
+  let editingTodoId = null;
+
+  function addTodo() {
+    editingTodoId = null;
+    const body = document.getElementById('todoManageBody');
+    body.innerHTML = `
+      <div style="padding:8px 0;">
+        <h4 style="margin-bottom:16px;font-size:15px;">新增待办事项</h4>
+        <div class="form-group"><label>待办内容</label><input id="todoInputTitle" placeholder="请输入待办事项内容" style="width:100%;"></div>
+        <div class="form-row">
+          <div class="form-group"><label>截止日期</label><input id="todoInputDue" placeholder="如：今日 18:00 或 2026-07-20" style="width:100%;"></div>
+          <div class="form-group"><label>所属模块</label>${getModuleSelectHTML('')}</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>优先级</label>
+            <select id="todoInputPriority" style="width:100%;"><option value="high">高</option><option value="medium" selected>中</option><option value="low">低</option></select>
+          </div>
+          <div class="form-group"><label>进度 (%)</label>
+            <input id="todoInputProgress" type="number" min="0" max="100" value="0" style="width:100%;">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveNewTodo()">保存</button>
+          <button class="btn" onclick="openTodoManage();renderTodoManageList();">取消</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function saveNewTodo() {
+    const title = document.getElementById('todoInputTitle').value.trim();
+    const due = document.getElementById('todoInputDue').value.trim();
+    const module = getModuleValue();
+    const priority = document.getElementById('todoInputPriority').value;
+    const progress = Math.min(100, Math.max(0, parseInt(document.getElementById('todoInputProgress').value) || 0));
+
+    if (!title) { alert('请输入待办内容'); return; }
+
+    const todos = getTodos();
+    const maxId = todos.length > 0 ? Math.max(...todos.map(t => t.id)) : 0;
+
+    if (editingTodoId) {
+      const t = todos.find(x => x.id === editingTodoId);
+      if (t) {
+        t.title = title;
+        t.due = due || '待定';
+        t.module = module || '通用';
+        t.priority = priority;
+        t.progress = progress;
+      }
+    } else {
+      todos.push({
+        id: maxId + 1,
+        title: title,
+        due: due || '待定',
+        module: module || '通用',
+        priority: priority,
+        done: false,
+        progress: progress,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    saveTodos(todos);
+    renderTodoManageList();
+    renderTodoList();
+  }
+
+  function editTodo(id) {
+    editingTodoId = id;
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t) return;
+
+    const body = document.getElementById('todoManageBody');
+    body.innerHTML = `
+      <div style="padding:8px 0;">
+        <h4 style="margin-bottom:16px;font-size:15px;">编辑待办事项</h4>
+        <div class="form-group"><label>待办内容</label><input id="todoInputTitle" value="${t.title}" style="width:100%;"></div>
+        <div class="form-row">
+          <div class="form-group"><label>截止日期</label><input id="todoInputDue" value="${t.due}" style="width:100%;"></div>
+          <div class="form-group"><label>所属模块</label>${getModuleSelectHTML(t.module)}</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>优先级</label>
+            <select id="todoInputPriority" style="width:100%;">
+              <option value="high" ${t.priority === 'high' ? 'selected' : ''}>高</option>
+              <option value="medium" ${t.priority === 'medium' ? 'selected' : ''}>中</option>
+              <option value="low" ${t.priority === 'low' ? 'selected' : ''}>低</option>
+            </select>
+          </div>
+          <div class="form-group"><label>进度 (%)</label>
+            <input id="todoInputProgress" type="number" min="0" max="100" value="${t.progress || 0}" style="width:100%;">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveNewTodo()">保存</button>
+          <button class="btn" onclick="openTodoManage();renderTodoManageList();">取消</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function deleteTodo(id) {
+    if (!confirm('确认删除此待办事项？')) return;
+    let todos = getTodos();
+    todos = todos.filter(t => t.id !== id);
+    saveTodos(todos);
+    renderTodoManageList();
+    renderTodoList();
+  }
+
+  // ========== UTILS ==========
+  function exportTable(name) {
+    alert(`模拟导出：${name}.csv`);
+  }
+
+  // Close dialogs on overlay click
+  document.getElementById('dialogOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDialog();
+  });
+  document.getElementById('detailOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDetail();
+  });
+  document.getElementById('quickCustomizeOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeQuickCustomize();
+  });
+  document.getElementById('todoManageOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeTodoManage();
+  });
+
+  // Initialize
+  renderQuickActions();
+  renderTodoList();
+</script>
+</body>
+</html>
