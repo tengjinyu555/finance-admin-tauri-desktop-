@@ -30,5 +30,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: finance-admin-windows
-          path: src-tauri/target/release/bundle/nsis/
+          path: |
+            src-tauri/target/release/bundle/nsis/
+            src-tauri/target/release/bundle/msi/
           retention-days: 7
