@@ -24,11 +24,13 @@ jobs:
         run: npm install
 
       - name: Build Tauri app
-        run: npx tauri build --bundles none
+        run: npx tauri build --bundles nsis
 
       - name: Upload exe artifact
         uses: actions/upload-artifact@v4
         with:
           name: finance-admin-windows
-          path: src-tauri/target/release/finance-admin.exe
+          path: |
+            src-tauri/target/release/finance-admin.exe
+            src-tauri/target/release/bundle/nsis/
           retention-days: 7
