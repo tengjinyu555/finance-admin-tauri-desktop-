@@ -1,0 +1,22 @@
+stages:
+  - build
+
+build-windows:
+  stage: build
+  image: rust:latest
+  tags:
+    - windows
+  script:
+    # 安装Node.js
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y nodejs
+    # 安装Rust Windows目标
+    - rustup target add x86_64-pc-windows-msvc
+    # 安装依赖
+    - npm install
+    # 构建
+    - npm run tauri build
+  artifacts:
+    paths:
+      - src-tauri/target/release/bundle/
+    expire_in: 7 days
