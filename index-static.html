@@ -458,6 +458,40 @@
     .flex-between { display: flex; justify-content: space-between; align-items: center; }
     .section-card { margin-bottom: 16px; }
 
+    /* ========== HEADER SEARCH ========== */
+    .header { gap: 16px; }
+    .header-search { flex: 1; max-width: 400px; position: relative; }
+    .search-box {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border: 1px solid #e8e8e8; border-radius: 6px;
+      background: #f5f7fa; transition: all 0.2s;
+    }
+    .search-box:focus-within {
+      border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(64,158,255,0.1);
+    }
+    .search-box i { color: #999; font-size: 14px; }
+    .search-box input {
+      flex: 1; border: none; background: none; outline: none;
+      font-size: 13px; color: #333; font-family: inherit;
+    }
+    .search-box input::placeholder { color: #bbb; }
+    .search-shortcut {
+      font-size: 11px; color: #ccc; background: #fff; border: 1px solid #e8e8e8;
+      border-radius: 3px; padding: 1px 5px; white-space: nowrap;
+    }
+    .search-tips {
+      display: none; position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
+      background: #fff; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 4px 0; z-index: 100; max-height: 300px; overflow-y: auto;
+    }
+    .search-tips.show { display: block; }
+    .search-tip-item {
+      padding: 8px 14px; font-size: 13px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .search-tip-item:hover { background: #f5f7fa; }
+    .search-tip-item strong { color: var(--primary); }
+
     /* ========== WELCOME BANNER ========== */
     .welcome-banner {
       background: linear-gradient(135deg, #1a1a4e 0%, #2d1b69 50%, #1a1a4e 100%);
@@ -676,6 +710,22 @@
   <div class="main-area">
     <header class="header">
       <div class="header-title" id="pageTitle">工作台</div>
+      <div class="header-search">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="globalSearchInput" placeholder="搜索客户、项目、发票..." oninput="handleSearchInput(this.value)" onfocus="showSearchTips()" onblur="hideSearchTips()">
+          <span class="search-shortcut">⌘K</span>
+        </div>
+        <div class="search-tips" id="searchTips">
+          <div class="search-tip-item" onclick="switchPage('customer');clearSearch()">📋 转到 <strong>客户管理</strong></div>
+          <div class="search-tip-item" onclick="switchPage('project');clearSearch()">📁 转到 <strong>项目管理</strong></div>
+          <div class="search-tip-item" onclick="switchPage('invoice');clearSearch()">🧾 转到 <strong>发票台账</strong></div>
+          <div class="search-tip-item" onclick="switchPage('transaction');clearSearch()">💰 转到 <strong>收支流水</strong></div>
+          <div class="search-tip-item" onclick="switchPage('ocr');clearSearch()">🔍 转到 <strong>OCR识别导入</strong></div>
+          <div class="search-tip-item" onclick="switchPage('employee');clearSearch()">👥 转到 <strong>员工管理</strong></div>
+          <div class="search-tip-item" onclick="switchPage('operation-log');clearSearch()">📝 转到 <strong>操作日志</strong></div>
+        </div>
+      </div>
       <div class="header-right">
         <div class="dropdown" id="userDropdown">
           <div class="user-info" onclick="toggleDropdown()">
@@ -703,7 +753,7 @@
             <div class="welcome-avatar">管</div>
             <div class="welcome-text">
               <div class="greeting">👋 下午好，管理员！</div>
-              <div class="sub">今天是 2026年7月17日，您有 <strong style="color:#60a5fa;" id="bannerTodoCount">5</strong> 项待办事项需要处理</div>
+              <div class="sub">今天是 2026年7月17日 · 您有 <strong style="color:#60a5fa;" id="bannerTodoCount">5</strong> 项待办事项需要处理</div>
             </div>
           </div>
           <div class="welcome-right">
@@ -1844,6 +1894,44 @@
     renderTodoManageList();
     renderTodoList();
   }
+
+  // ========== GLOBAL SEARCH ==========
+  function showSearchTips() {
+    const input = document.getElementById('globalSearchInput');
+    if (input.value.trim()) return;
+    document.getElementById('searchTips').classList.add('show');
+  }
+  function hideSearchTips() {
+    setTimeout(() => document.getElementById('searchTips').classList.remove('show'), 200);
+  }
+  function handleSearchInput(val) {
+    const tips = document.getElementById('searchTips');
+    if (!val.trim()) {
+      tips.querySelectorAll('.search-tip-item').forEach(el => el.style.display = '');
+      tips.classList.add('show');
+      return;
+    }
+    const kw = val.toLowerCase();
+    tips.querySelectorAll('.search-tip-item').forEach(el => {
+      el.style.display = el.textContent.toLowerCase().includes(kw) ? '' : 'none';
+    });
+    tips.classList.add('show');
+  }
+  function clearSearch() {
+    document.getElementById('globalSearchInput').value = '';
+    document.getElementById('searchTips').classList.remove('show');
+  }
+  // Keyboard shortcut: Ctrl+K / ⌘K
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      document.getElementById('globalSearchInput').focus();
+    }
+    if (e.key === 'Escape') {
+      document.getElementById('globalSearchInput').blur();
+      document.getElementById('searchTips').classList.remove('show');
+    }
+  });
 
   // ========== UTILS ==========
   function exportTable(name) {

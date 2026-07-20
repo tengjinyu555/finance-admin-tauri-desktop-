@@ -74,6 +74,40 @@
     <el-container>
       <el-header class="topbar">
         <div class="topbar-title">{{ route.meta.title }}</div>
+        <!-- 全局搜索 -->
+        <div class="header-search">
+          <div class="search-box" :class="{ focused: searchFocused }">
+            <el-icon><Search /></el-icon>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="搜索客户、项目、发票..."
+              @focus="searchFocused = true"
+              @blur="onSearchBlur"
+              @input="onSearchInput"
+              @keydown.enter="onSearchEnter"
+              @keydown.esc="onSearchEsc"
+            />
+            <span class="search-shortcut">⌘K</span>
+          </div>
+          <div v-show="searchFocused && !searchKeyword" class="search-tips">
+            <div v-for="m in getAvailableSearchModules()" :key="m.path" class="search-tip-item" @mousedown.prevent="goTo(m.path)">
+              <el-icon><component :is="m.icon" /></el-icon> 转到 <strong>{{ m.label }}</strong>
+            </div>
+          </div>
+          <!-- 搜索结果 -->
+          <div v-show="searchFocused && searchKeyword && searchResults.length > 0" class="search-tips">
+            <div
+              v-for="item in searchResults"
+              :key="item.path"
+              class="search-tip-item"
+              @mousedown.prevent="goTo(item.path)"
+            >
+              <el-icon><component :is="item.icon" /></el-icon>
+              {{ item.label }}
+            </div>
+          </div>
+        </div>
         <div class="topbar-right">
           <!-- 用户下拉菜单 -->
           <el-dropdown trigger="click">
@@ -183,7 +217,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { Document, Odometer, OfficeBuilding, Monitor, User, Lock, Money, List, DataAnalysis, Folder, Notebook, Bell, ArrowDown, SwitchButton, ArrowRight, Check } from '@element-plus/icons-vue'
+import { Document, Odometer, OfficeBuilding, Monitor, User, Lock, Money, List, DataAnalysis, Folder, Notebook, Bell, ArrowDown, SwitchButton, ArrowRight, Check, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { AuthApi } from '../api/invoice'
 import api from '../api/index'
@@ -195,6 +229,70 @@ const userStore = useUserStore()
 const isLocked = ref(false)
 const unlockPassword = ref('')
 const unlockError = ref('')
+
+// 全局搜索
+const searchKeyword = ref('')
+const searchFocused = ref(false)
+const searchResults = ref([])
+
+const searchModules = [
+  { label: '客户管理', path: '/customer', icon: 'OfficeBuilding', keywords: ['客户', '供应商', 'customer'], roles: ['admin', 'finance', 'viewer'] },
+  { label: '项目管理', path: '/project', icon: 'Folder', keywords: ['项目', 'project'], roles: ['admin', 'finance', 'viewer'] },
+  { label: '发票台账', path: '/invoice', icon: 'Document', keywords: ['发票', '进项', '销项', 'invoice'], roles: ['admin', 'finance', 'viewer'] },
+  { label: '收支流水', path: '/transaction', icon: 'List', keywords: ['流水', '收支', 'transaction'], roles: ['admin', 'finance', 'viewer'] },
+  { label: 'OCR识别导入', path: '/ocr-import', icon: 'Monitor', keywords: ['ocr', '识别', '导入'], roles: ['admin', 'finance'] },
+  { label: '员工管理', path: '/employee', icon: 'User', keywords: ['员工', '用户', 'employee'], roles: ['admin'] },
+  { label: '操作日志', path: '/operation-log', icon: 'Notebook', keywords: ['日志', '操作', 'log'], roles: ['admin', 'finance', 'viewer'] }
+]
+
+const getAvailableSearchModules = () => {
+  const userRoles = userStore.user?.roleCodes || userStore.user?.roles || []
+  return searchModules.filter(m => m.roles.some(r => userRoles.includes(r)))
+}
+
+const onSearchInput = () => {
+  if (!searchKeyword.value.trim()) {
+    searchResults.value = []
+    return
+  }
+  const kw = searchKeyword.value.toLowerCase()
+  const available = getAvailableSearchModules()
+  searchResults.value = available.filter(m =>
+    m.label.toLowerCase().includes(kw) ||
+    m.keywords.some(k => k.includes(kw))
+  )
+}
+
+const onSearchBlur = () => {
+  setTimeout(() => {
+    searchFocused.value = false
+  }, 200)
+}
+
+const onSearchEsc = () => {
+  searchKeyword.value = ''
+  searchFocused.value = false
+}
+
+const onSearchEnter = () => {
+  if (searchResults.value.length > 0) {
+    goTo(searchResults.value[0].path)
+  }
+}
+
+const goTo = (path) => {
+  searchKeyword.value = ''
+  searchFocused.value = false
+  router.push(path)
+}
+
+// 键盘快捷键
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault()
+    searchFocused.value = true
+  }
+})
 
 // 企业切换相关
 const currentTenantId = ref(Number(userStore.tenantId) || '')
@@ -492,6 +590,78 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+/* 全局搜索 */
+.header-search {
+  flex: 1;
+  max-width: 400px;
+  position: relative;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background: #f5f7fa;
+  transition: all 0.2s;
+}
+.search-box.focused {
+  border-color: #409eff;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(64,158,255,0.1);
+}
+.search-box input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 13px;
+  color: #333;
+  font-family: inherit;
+}
+.search-box input::placeholder {
+  color: #bbb;
+}
+.search-shortcut {
+  font-size: 11px;
+  color: #ccc;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+.search-tips {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 4px 0;
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.search-tip-item {
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+.search-tip-item:hover {
+  background: #f5f7fa;
+}
+.search-tip-item strong {
+  color: #409eff;
 }
 
 .user-info {

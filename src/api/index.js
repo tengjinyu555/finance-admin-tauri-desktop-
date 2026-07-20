@@ -82,8 +82,10 @@ const redirectToLogin = () => {
   localStorage.removeItem('user')
   localStorage.removeItem('token')
   localStorage.removeItem('tenantId')
-  router.push('/login')
   ElMessage.error('登录已过期，请重新登录')
+  setTimeout(() => {
+    window.location.href = '/#/login'
+  }, 500)
 }
 
 // 请求拦截器
