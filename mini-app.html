@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>业财助手</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --primary: #409eff;
+      --success: #67c23a;
+      --warning: #e6a23c;
+      --danger: #f56c6c;
+      --bg: #f5f6fa;
+      --card: #fff;
+      --text: #333;
+      --text-secondary: #999;
+      --border: #eee;
+      --tab-height: 50px;
+      --header-height: 44px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+      background: var(--bg); color: var(--text); font-size: 14px;
+      overflow: hidden; height: 100vh; width: 100vw;
+    }
+
+    /* ===== APP SHELL ===== */
+    .app { display: flex; flex-direction: column; height: 100vh; max-width: 100vw; }
+    .header {
+      height: var(--header-height); background: var(--card); 
+      display: flex; align-items: center; justify-content: center;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+      font-size: 16px; font-weight: 600; position: relative;
+      padding: 0 12px;
+    }
+    .header .back-btn { display: none; position: absolute; left: 12px; font-size: 18px; color: var(--primary); cursor: pointer; }
+    .header .back-btn.show { display: block; }
+    .header-title { font-size: 16px; font-weight: 600; }
+    .content {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch; padding-bottom: 4px;
+    }
+    .page { display: none; padding: 12px; }
+    .page.active { display: block; }
+
+    /* ===== TAB BAR ===== */
+    .tab-bar {
+      display: flex; background: var(--card); border-top: 1px solid var(--border);
+      flex-shrink: 0; padding-bottom: var(--safe-bottom); height: calc(var(--tab-height) + var(--safe-bottom));
+    }
+    .tab-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px; cursor: pointer; color: var(--text-secondary); font-size: 10px;
+      transition: all 0.2s; padding: 4px 0; position: relative; -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .tab-item:active { background: #f5f7fa; }
+    .tab-item i { font-size: 20px; transition: transform 0.2s; }
+    .tab-item:active i { transform: scale(0.9); }
+    .tab-item.active { color: var(--primary); }
+    .tab-item.active::after {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 20px; height: 2px; border-radius: 0 0 2px 2px; background: var(--primary);
+    }
+    .tab-item .badge {
+      position: absolute; top: 0; right: 50%; margin-right: -18px;
+      background: var(--danger); color: #fff; font-size: 10px; min-width: 16px; height: 16px;
+      line-height: 16px; border-radius: 8px; text-align: center; padding: 0 4px;
+    }
+    .tab-item .tab-icon-wrap { position: relative; }
+
+    /* ===== CARDS ===== */
+    .card { background: var(--card); border-radius: 10px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .card-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .card-more { font-size: 12px; color: var(--primary); cursor: pointer; }
+
+    /* ===== STATS ===== */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .stat-card {
+      padding: 14px; border-radius: 10px; color: #fff; cursor: pointer;
+      transition: transform 0.2s; position: relative; overflow: hidden;
+    }
+    .stat-card:active { transform: scale(0.97); }
+    .stat-card .num { font-size: 22px; font-weight: 700; }
+    .stat-card .lbl { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    .stat-card .icn { position: absolute; right: 12px; bottom: 10px; font-size: 28px; opacity: 0.25; }
+    .bg-blue { background: linear-gradient(135deg,#409eff,#66b1ff); }
+    .bg-green { background: linear-gradient(135deg,#67c23a,#85ce61); }
+    .bg-orange { background: linear-gradient(135deg,#e6a23c,#ebb563); }
+    .bg-purple { background: linear-gradient(135deg,#9b59b6,#bb86fc); }
+    .bg-red { background: linear-gradient(135deg,#f56c6c,#f89898); }
+
+    /* ===== WELCOME ===== */
+    .welcome { padding: 16px 0 8px; }
+    .welcome h1 { font-size: 20px; font-weight: 700; }
+    .welcome p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+    /* ===== LIST ===== */
+    .list-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:active { background: #f8f9fb; margin: 0 -14px; padding: 12px 14px; }
+    .list-item .li-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 16px; flex-shrink: 0;
+    }
+    .list-item .li-content { flex: 1; min-width: 0; }
+    .list-item .li-title { font-size: 14px; font-weight: 500; }
+    .list-item .li-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .list-item .li-right { text-align: right; flex-shrink: 0; }
+    .list-item .li-amount { font-size: 14px; font-weight: 600; }
+    .list-item .li-amount.green { color: var(--success); }
+    .list-item .li-amount.orange { color: var(--warning); }
+    .list-item .li-status { font-size: 11px; }
+    .list-item .li-arrow { color: #ccc; font-size: 14px; }
+
+    /* ===== TAG ===== */
+    .tag {
+      display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 500;
+    }
+    .tag-primary { background: #ecf5ff; color: var(--primary); }
+    .tag-success { background: #f0f9eb; color: var(--success); }
+    .tag-warning { background: #fdf6ec; color: var(--warning); }
+    .tag-danger { background: #fef0f0; color: var(--danger); }
+    .tag-info { background: #f4f4f5; color: #909399; }
+
+    /* ===== TODO ===== */
+    .todo-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-check {
+      width: 18px; height: 18px; border-radius: 50%; border: 2px solid #dcdfe6;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .todo-check.done { background: var(--success); border-color: var(--success); }
+    .todo-check i { display: none; color: #fff; font-size: 10px; }
+    .todo-check.done i { display: block; }
+    .todo-title { font-size: 13px; }
+    .todo-title.done-text { text-decoration: line-through; color: #ccc; }
+
+    /* ===== PAGE SPECIFIC ===== */
+    .page-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+
+    /* ===== MY PAGE ===== */
+    .profile-card {
+      text-align: center; padding: 24px 14px;
+    }
+    .profile-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 10px; font-size: 24px; font-weight: 700; color: #fff;
+    }
+    .profile-name { font-size: 16px; font-weight: 600; }
+    .profile-role { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .menu-group { margin-top: 10px; }
+    .menu-item {
+      display: flex; align-items: center; gap: 10px; padding: 14px;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .menu-item:active { background: #f8f9fb; }
+    .menu-item i:first-child { width: 20px; color: var(--primary); }
+    .menu-item span { flex: 1; font-size: 14px; }
+    .menu-item .fa-chevron-right { color: #ccc; font-size: 12px; }
+
+    /* ===== EMPTY ===== */
+    .empty-state { text-align: center; padding: 40px 20px; color: #ccc; }
+    .empty-state i { font-size: 40px; margin-bottom: 10px; }
+    .empty-state p { font-size: 13px; }
+
+    /* ===== BADGE DOT ===== */
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .dot-green { background: var(--success); }
+    .dot-orange { background: var(--warning); }
+    .dot-blue { background: var(--primary); }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-bar { height: 3px; background: #f0f0f0; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+    .progress-bar .fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+    .progress-bar .fill.primary { background: var(--primary); }
+    .progress-bar .fill.success { background: var(--success); }
+    .progress-bar .fill.warning { background: var(--warning); }
+    .progress-bar .fill.danger { background: var(--danger); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: rgba(0,0,0,0.75); color: #fff; padding: 12px 24px;
+      border-radius: 8px; font-size: 14px; z-index: 9999;
+      display: none; max-width: 80%; text-align: center;
+    }
+    .toast.show { display: block; animation: fadeIn 0.2s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar { width: 0; height: 0; }
+
+    @media (min-width: 500px) {
+      .app { max-width: 420px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="back-btn" id="backBtn" onclick="goBack()"><i class="fas fa-chevron-left"></i></div>
+    <div class="header-title" id="headerTitle">业财助手</div>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="content">
+
+    <!-- ===== HOME ===== -->
+    <div class="page active" id="page-home">
+      <div class="welcome">
+        <h1>👋 下午好</h1>
+        <p>今天是 7月17日 · 有 <strong style="color:var(--primary);" id="mobileTodoCount">0</strong> 项待办</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card bg-blue" onclick="showToast('客户管理')">
+          <div class="num" id="mCustomerCount">128</div>
+          <div class="lbl">客户总数</div>
+          <div class="icn"><i class="fas fa-building"></i></div>
+        </div>
+        <div class="stat-card bg-green" onclick="switchTab('project')">
+          <div class="num" id="mProjectCount">36</div>
+          <div class="lbl">项目总数</div>
+          <div class="icn"><i class="fas fa-folder"></i></div>
+        </div>
+        <div class="stat-card bg-orange" onclick="switchTab('invoice')">
+          <div class="num" id="mInvoiceCount">512</div>
+          <div class="lbl">发票总数</div>
+          <div class="icn"><i class="fas fa-file-invoice"></i></div>
+        </div>
+        <div class="stat-card bg-purple" onclick="showToast('员工管理')">
+          <div class="num" id="mEmployeeCount">24</div>
+          <div class="lbl">员工人数</div>
+          <div class="icn"><i class="fas fa-users"></i></div>
+        </div>
+      </div>
+
+      <!-- 待办事项 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fas fa-check-circle" style="color:var(--primary);"></i> 待办事项</span>
+          <span class="card-more" onclick="showToast('待办管理功能开发中')">管理</span>
+        </div>
+        <div id="mobileTodoList">
+          <div class="empty-state" style="padding:20px;"><p>暂无待办</p></div>
+        </div>
+      </div>
+
+      <!-- 最近项目 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fas fa-folder" style="color:var(--primary);"></i> 进行中项目</span>
+          <span class="card-more" onclick="switchTab('project')">全部</span>
+        </div>
+        <div>
+          <div class="list-item" onclick="switchTab('project')">
+            <div class="li-icon bg-blue"><i class="fas fa-folder"></i></div>
+            <div class="li-content">
+              <div class="li-title">ERP系统开发</div>
+              <div class="li-meta">张三 · 预算 ¥120万</div>
+            </div>
+            <span class="tag tag-primary">进行中</span>
+          </div>
+          <div class="list-item" onclick="switchTab('project')">
+            <div class="li-icon bg-green"><i class="fas fa-folder"></i></div>
+            <div class="li-content">
+              <div class="li-title">智能财税平台升级</div>
+              <div class="li-meta">李四 · 预算 ¥80万</div>
+            </div>
+            <span class="tag tag-success">已完成</span>
+          </div>
+          <div class="list-item" onclick="switchTab('project')">
+            <div class="li-icon bg-orange"><i class="fas fa-folder"></i></div>
+            <div class="li-content">
+              <div class="li-title">进销项发票管理系统</div>
+              <div class="li-meta">王五 · 预算 ¥50万</div>
+            </div>
+            <span class="tag tag-primary">进行中</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PROJECT ===== -->
+    <div class="page" id="page-project">
+      <div class="page-title">项目列表</div>
+      <div class="card">
+        <div class="list-item" onclick="showProjectDetail(0)">
+          <div class="li-icon bg-blue"><i class="fas fa-folder"></i></div>
+          <div class="li-content">
+            <div class="li-title">ERP系统开发</div>
+            <div class="li-meta">张三 · ¥1,200,000</div>
+          </div>
+          <span class="tag tag-primary">进行中</span>
+          <i class="fas fa-chevron-right li-arrow"></i>
+        </div>
+        <div class="list-item" onclick="showProjectDetail(1)">
+          <div class="li-icon bg-green"><i class="fas fa-folder"></i></div>
+          <div class="li-content">
+            <div class="li-title">智能财税平台升级</div>
+            <div class="li-meta">李四 · ¥800,000</div>
+          </div>
+          <span class="tag tag-success">已完成</span>
+          <i class="fas fa-chevron-right li-arrow"></i>
+        </div>
+        <div class="list-item" onclick="showProjectDetail(2)">
+          <div class="li-icon bg-orange"><i class="fas fa-folder"></i></div>
+          <div class="li-content">
+            <div class="li-title">进销项发票管理系统</div>
+            <div class="li-meta">王五 · ¥500,000</div>
+          </div>
+          <span class="tag tag-primary">进行中</span>
+          <i class="fas fa-chevron-right li-arrow"></i>
+        </div>
+        <div class="list-item" onclick="showProjectDetail(3)">
+          <div class="li-icon bg-purple"><i class="fas fa-folder"></i></div>
+          <div class="li-content">
+            <div class="li-title">银行数据中台建设</div>
+            <div class="li-meta">赵六 · ¥3,000,000</div>
+          </div>
+          <span class="tag tag-primary">进行中</span>
+          <i class="fas fa-chevron-right li-arrow"></i>
+        </div>
+        <div class="list-item" onclick="showProjectDetail(4)">
+          <div class="li-icon bg-red"><i class="fas fa-folder"></i></div>
+          <div class="li-content">
+            <div class="li-title">智慧校园系统</div>
+            <div class="li-meta">钱七 · ¥1,500,000</div>
+          </div>
+          <span class="tag tag-success">已完成</span>
+          <i class="fas fa-chevron-right li-arrow"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== INVOICE ===== -->
+    <div class="page" id="page-invoice">
+      <div class="page-title">发票台账</div>
+      <div class="card">
+        <div class="list-item">
+          <div class="li-icon bg-primary"><i class="fas fa-file-invoice"></i></div>
+          <div class="li-content">
+            <div class="li-title">INV-2026-001</div>
+            <div class="li-meta">某某科技 · ¥56,500</div>
+          </div>
+          <span class="tag tag-success">已认证</span>
+        </div>
+        <div class="list-item">
+          <div class="li-icon bg-warning"><i class="fas fa-file-invoice"></i></div>
+          <div class="li-content">
+            <div class="li-title">INV-2026-002</div>
+            <div class="li-meta">集团财务 · ¥90,400</div>
+          </div>
+          <span class="tag tag-primary">正常</span>
+        </div>
+        <div class="list-item">
+          <div class="li-icon bg-primary"><i class="fas fa-file-invoice"></i></div>
+          <div class="li-content">
+            <div class="li-title">INV-2026-003</div>
+            <div class="li-meta">咨询服务 · ¥12,720</div>
+          </div>
+          <span class="tag tag-info">未认证</span>
+        </div>
+        <div class="list-item">
+          <div class="li-icon bg-warning"><i class="fas fa-file-invoice"></i></div>
+          <div class="li-content">
+            <div class="li-title">INV-2026-004</div>
+            <div class="li-meta">电子科技 · ¥39,550</div>
+          </div>
+          <span class="tag tag-danger">作废</span>
+        </div>
+        <div class="list-item">
+          <div class="li-icon bg-primary"><i class="fas fa-file-invoice"></i></div>
+          <div class="li-content">
+            <div class="li-title">INV-2026-005</div>
+            <div class="li-meta">软件技术 · ¥31,640</div>
+          </div>
+          <span class="tag tag-success">已认证</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TRANSACTION ===== -->
+    <div class="page" id="page-transaction">
+      <div class="page-title">收支流水</div>
+      <div class="card">
+        <div class="list-item">
+          <div class="li-icon bg-green"><i class="fas fa-arrow-down"></i></div>
+          <div class="li-content">
+            <div class="li-title">项目首付款</div>
+            <div class="li-meta">集团财务 · INV-2026-002</div>
+          </div>
+          <div class="li-right"><div class="li-amount green">+¥90,400</div><span class="tag tag-success">已完成</span></div>
+        </div>
+        <div class="list-item">
+          <div class="li-icon bg-orange"><i class="fas fa-arrow-up"></i></div>
+          <div class="li-content">
+            <div class="li-title">采购服务器</div>
+            <div class="li-meta">某某科技 · INV-2026-001</div>
+          </div>
+          <div class="li-right"><div class="li-amount orange">-¥56,500</div><span class="tag tag-success">已完成</span></div>
+        </div>
+        <div class="list-item">
+          <div class="li-icon bg-green"><i class="fas fa-arrow-down"></i></div>
+          <div class="li-content">
+            <div class="li-title">服务费</div>
+            <div class="li-meta">电子科技</div>
+          </div>
+          <div class="li-right"><div class="li-amount green">+¥200,000</div><span class="tag tag-warning">待确认</span></div>
+        </div>
+        <div class="list-item">
+          <div class="li-icon bg-green"><i class="fas fa-arrow-down"></i></div>
+          <div class="li-content">
+            <div class="li-title">项目进度款</div>
+            <div class="li-meta">某某学校</div>
+          </div>
+          <div class="li-right"><div class="li-amount green">+¥500,000</div><span class="tag tag-success">已完成</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MY ===== -->
+    <div class="page" id="page-my">
+      <div class="card profile-card">
+        <div class="profile-avatar">管</div>
+        <div class="profile-name">管理员</div>
+        <div class="profile-role">admin · 系统管理员</div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-item" onclick="showToast('个人信息')">
+          <i class="fas fa-user"></i><span>个人信息</span><i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="menu-item" onclick="showToast('我的企业：默认企业')">
+          <i class="fas fa-building"></i><span>我的企业</span><i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="menu-item" onclick="showToast('操作日志')">
+          <i class="fas fa-clipboard-list"></i><span>操作日志</span><i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="menu-item" onclick="showToast('数据导出功能开发中')">
+          <i class="fas fa-download"></i><span>数据导出</span><i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="menu-item" onclick="showToast('关于业财助手 v1.0.0')">
+          <i class="fas fa-info-circle"></i><span>关于</span><i class="fas fa-chevron-right"></i>
+        </div>
+      </div>
+      <div class="card" style="margin-top:10px;">
+        <div class="menu-item" onclick="showToast('已退出登录')" style="color:var(--danger);">
+          <i class="fas fa-sign-out-alt" style="color:var(--danger);"></i><span>退出登录</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PROJECT DETAIL ===== -->
+    <div class="page" id="page-project-detail">
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar" id="tabBar">
+    <div class="tab-item active" data-tab="home" onclick="switchTab('home')">
+      <i class="fas fa-home"></i><span>首页</span>
+    </div>
+    <div class="tab-item" data-tab="project" onclick="switchTab('project')">
+      <i class="fas fa-folder"></i><span>项目</span>
+    </div>
+    <div class="tab-item" data-tab="invoice" onclick="switchTab('invoice')">
+      <i class="fas fa-file-invoice"></i><span>发票</span>
+    </div>
+    <div class="tab-item" data-tab="transaction" onclick="switchTab('transaction')">
+      <i class="fas fa-list"></i><span>流水</span>
+    </div>
+    <div class="tab-item" data-tab="my" onclick="switchTab('my')">
+      <i class="fas fa-user"></i><span>我的</span>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ========== NAVIGATION ==========
+  let pageStack = ['home'];
+
+  function switchTab(tab) {
+    if (tab === pageStack[pageStack.length - 1]) return;
+    // Update tab bar
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    const targetTab = document.querySelector(`.tab-item[data-tab="${tab}"]`);
+    if (targetTab) targetTab.classList.add('active');
+    // Show page
+    showPage(tab);
+    // Reset scroll
+    document.getElementById('content').scrollTop = 0;
+    // Update header
+    document.getElementById('backBtn').classList.remove('show');
+    const titles = { home: '业财助手', project: '项目列表', invoice: '发票台账', transaction: '收支流水', my: '个人中心' };
+    document.getElementById('headerTitle').textContent = titles[tab] || '业财助手';
+    pageStack = [tab];
+  }
+
+  function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('page-' + page);
+    if (target) target.classList.add('active');
+  }
+
+  function pushPage(page, title) {
+    showPage(page);
+    document.getElementById('backBtn').classList.add('show');
+    document.getElementById('headerTitle').textContent = title;
+    document.getElementById('content').scrollTop = 0;
+    pageStack.push(page);
+  }
+
+  function goBack() {
+    if (pageStack.length <= 1) return;
+    pageStack.pop();
+    const prev = pageStack[pageStack.length - 1];
+    if (['home','project','invoice','transaction','my'].includes(prev)) {
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      const targetTab = document.querySelector(`.tab-item[data-tab="${prev}"]`);
+      if (targetTab) targetTab.classList.add('active');
+      document.getElementById('backBtn').classList.remove('show');
+    }
+    showPage(prev);
+    const titles = { home: '业财助手', project: '项目列表', invoice: '发票台账', transaction: '收支流水', my: '个人中心' };
+    document.getElementById('headerTitle').textContent = titles[prev] || '业财助手';
+    document.getElementById('content').scrollTop = 0;
+  }
+
+  // ========== PROJECT DETAIL ==========
+  const projectData = [
+    { name: 'ERP系统开发', manager: '张三', status: '进行中', budget: '¥1,200,000', invoiced: '¥480,000', received: '¥480,000', paid: '¥200,000', contractReceive: '¥1,500,000', contractExpense: '¥1,200,000' },
+    { name: '智能财税平台升级', manager: '李四', status: '已完成', budget: '¥800,000', invoiced: '¥800,000', received: '¥800,000', paid: '¥580,000', contractReceive: '¥800,000', contractExpense: '¥600,000' },
+    { name: '进销项发票管理系统', manager: '王五', status: '进行中', budget: '¥500,000', invoiced: '¥120,000', received: '¥120,000', paid: '¥50,000', contractReceive: '¥600,000', contractExpense: '¥500,000' },
+    { name: '银行数据中台建设', manager: '赵六', status: '进行中', budget: '¥3,000,000', invoiced: '¥900,000', received: '¥900,000', paid: '¥350,000', contractReceive: '¥3,500,000', contractExpense: '¥3,000,000' },
+    { name: '智慧校园系统', manager: '钱七', status: '已完成', budget: '¥1,500,000', invoiced: '¥1,500,000', received: '¥1,500,000', paid: '¥1,150,000', contractReceive: '¥1,500,000', contractExpense: '¥1,200,000' }
+  ];
+
+  function showProjectDetail(index) {
+    const p = projectData[index];
+    if (!p) return;
+    const statusTag = p.status === '进行中' ? 'tag-primary' : 'tag-success';
+    const receivedNum = parseInt(p.received.replace(/[¥,]/g,''));
+    const paidNum = parseInt(p.paid.replace(/[¥,]/g,''));
+    const contractReceiveNum = parseInt(p.contractReceive.replace(/[¥,]/g,''));
+    const contractExpenseNum = parseInt(p.contractExpense.replace(/[¥,]/g,''));
+    const profit = receivedNum - paidNum;
+    const remainingReceive = receivedNum - paidNum;
+    const remainingPay = contractExpenseNum - paidNum;
+    const expensePct = contractExpenseNum > 0 ? Math.round(paidNum / contractExpenseNum * 100) : 0;
+    const receiptPct = contractReceiveNum > 0 ? Math.round(receivedNum / contractReceiveNum * 100) : 0;
+
+    document.getElementById('detailContent').innerHTML = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:18px;font-weight:700;">${p.name}</div>
+            <div style="font-size:12px;color:#999;margin-top:4px;">负责人：${p.manager}</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="tag ${statusTag}" style="font-size:13px;padding:2px 12px;">${p.status}</span>
+            <div style="font-size:11px;color:#999;margin-top:4px;">已回款</div>
+            <div style="font-size:16px;font-weight:700;color:var(--warning);">${p.received}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 汇总网格 -->
+      <div class="card" style="padding:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <div style="background:#f5f7fa;padding:8px;border-radius:6px;border-left:3px solid #9b59b6;">
+            <div style="font-size:10px;color:#999;">回款端合同</div>
+            <div style="font-size:13px;font-weight:700;color:#9b59b6;">${p.contractReceive}</div>
+          </div>
+          <div style="background:#f5f7fa;padding:8px;border-radius:6px;border-left:3px solid var(--warning);">
+            <div style="font-size:10px;color:#999;">已回款</div>
+            <div style="font-size:13px;font-weight:700;color:var(--warning);">${p.received}</div>
+          </div>
+          <div style="background:#f5f7fa;padding:8px;border-radius:6px;border-left:3px solid var(--primary);">
+            <div style="font-size:10px;color:#999;">支出端合同</div>
+            <div style="font-size:13px;font-weight:700;color:var(--primary);">${p.contractExpense}</div>
+          </div>
+          <div style="background:#f5f7fa;padding:8px;border-radius:6px;border-left:3px solid var(--success);">
+            <div style="font-size:10px;color:#999;">已支付</div>
+            <div style="font-size:13px;font-weight:700;color:var(--success);">${p.paid}</div>
+          </div>
+          <div style="background:#f5f7fa;padding:8px;border-radius:6px;">
+            <div style="font-size:10px;color:#999;">剩余回款</div>
+            <div style="font-size:13px;font-weight:700;color:${remainingReceive >= 0 ? 'var(--success)' : 'var(--danger)'};
+">¥${(receivedNum - paidNum).toLocaleString()}</div>
+          </div>
+          <div style="background:#f5f7fa;padding:8px;border-radius:6px;border-left:3px solid var(--danger);">
+            <div style="font-size:10px;color:#999;">未支付</div>
+            <div style="font-size:13px;font-weight:700;color:var(--danger);">¥${(contractExpenseNum - paidNum).toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 净利润 -->
+      <div class="card" style="padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><span style="font-size:13px;color:#666;">净利润</span><div style="font-size:11px;color:#999;margin-top:2px;">已回款 - 已支付</div></div>
+          <span style="font-size:22px;font-weight:700;color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${profit >= 0 ? '+' : ''}¥${profit.toLocaleString()}</span>
+        </div>
+      </div>
+
+      <!-- 进度条 -->
+      <div class="card" style="padding:12px 14px;">
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span>回款进度</span>
+            <span>${p.received} / ${p.contractReceive}</span>
+          </div>
+          <div class="progress-bar" style="margin-top:4px;"><div class="fill success" style="width:${receiptPct}%;"></div></div>
+          <div style="text-align:right;font-size:11px;color:#999;margin-top:2px;">${receiptPct}%</div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span>支出进度</span>
+            <span>${p.paid} / ${p.contractExpense}</span>
+          </div>
+          <div class="progress-bar" style="margin-top:4px;"><div class="fill primary" style="width:${expensePct}%;"></div></div>
+          <div style="text-align:right;font-size:11px;color:#999;margin-top:2px;">${expensePct}%</div>
+        </div>
+      </div>
+
+      <!-- 模拟数据提示 -->
+      <div class="card" style="text-align:center;padding:20px;color:#999;font-size:12px;">
+        <i class="fas fa-table" style="font-size:24px;display:block;margin-bottom:6px;color:#ddd;"></i>
+        垫资记录 · 支出记录 · 回款记录<br>请在桌面端查看完整详情
+      </div>
+    `;
+    pushPage('project-detail', '项目详情');
+  }
+
+  // ========== TOAST ==========
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1500);
+  }
+
+  // ========== TODO (from localStorage) ==========
+  function getMobileTodos() {
+    try {
+      const stored = localStorage.getItem('todos');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return [];
+  }
+
+  function renderMobileTodos() {
+    const container = document.getElementById('mobileTodoList');
+    const countEl = document.getElementById('mobileTodoCount');
+    const todos = getMobileTodos().filter(t => !t.done).slice(0, 5);
+    countEl.textContent = todos.length;
+
+    if (todos.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="padding:20px;"><p>暂无待办</p></div>';
+      return;
+    }
+
+    container.innerHTML = '<div style="max-height:200px;overflow-y:auto;">' + todos.map(t => {
+      const pct = t.progress || 0;
+      let barStatus = 'primary';
+      if (pct >= 100) barStatus = 'success';
+      else if (pct >= 70) barStatus = 'primary';
+      else if (pct >= 30) barStatus = 'warning';
+      else barStatus = 'danger';
+      return `
+        <div class="todo-item">
+          <div class="todo-check" onclick="toggleMobileTodo(${t.id})"><i class="fas fa-check"></i></div>
+          <div style="flex:1;min-width:0;">
+            <div class="todo-title">${t.title}</div>
+            <div style="font-size:11px;color:#999;margin-top:2px;">${t.due} · ${t.module} · ${pct}%</div>
+            <div class="progress-bar"><div class="fill ${barStatus}" style="width:${Math.max(pct,2)}%;"></div></div>
+          </div>
+        </div>
+      `;
+    }).join('') + '</div>';
+  }
+
+  function toggleMobileTodo(id) {
+    try {
+      const stored = localStorage.getItem('todos');
+      if (stored) {
+        const todos = JSON.parse(stored);
+        const t = todos.find(x => x.id === id);
+        if (t) t.done = !t.done;
+        localStorage.setItem('todos', JSON.stringify(todos));
+        renderMobileTodos();
+      }
+    } catch(e) {}
+  }
+
+  // ========== INIT ==========
+  renderMobileTodos();
+
+  // Sync from desktop: if localStorage has todoVersion, use it
+  // This ensures the mini-app shares the same todo data as the desktop version
+  try {
+    if (!localStorage.getItem('todos')) {
+      localStorage.setItem('todos', JSON.stringify([
+        { id: 1, title: '审核本月进项发票认证清单', due: '今日 18:00', module: '发票', priority: 'high', done: false, createdAt: new Date().toISOString(), progress: 70 },
+        { id: 2, title: '确认ERP项目进度款回款', due: '2026-07-20', module: '项目', priority: 'high', done: false, createdAt: new Date().toISOString(), progress: 40 },
+        { id: 3, title: '更新客户档案信息', due: '2026-07-18', module: '客户', priority: 'medium', done: false, createdAt: new Date().toISOString(), progress: 10 },
+        { id: 4, title: '导出本月收支流水报表', due: '2026-07-22', module: '流水', priority: 'medium', done: false, createdAt: new Date().toISOString(), progress: 85 },
+        { id: 5, title: '员工权限复查', due: '2026-07-25', module: '员工', priority: 'low', done: false, createdAt: new Date().toISOString(), progress: 0 }
+      ]));
+      renderMobileTodos();
+    }
+  } catch(e) {}
+</script>
+</body>
+</html>
