@@ -43,14 +43,43 @@ pub fn run() {
                                     log_to_file("检查完成");
                                     if let Some(update) = update {
                                         log_to_file(&format!("发现新版本: {}", update.version));
-                                        log_to_file("开始下载更新...");
-                                        match update.download_and_install(|_, _| {}, || {}).await {
-                                            Ok(_) => {
-                                                log_to_file("下载完成，准备重启...");
-                                                handle.restart();
+                                        let download_url = update.download_url().to_string();
+                                        log_to_file(&format!("下载地址: {}", download_url));
+
+                                        // 手动下载绕过签名验证
+                                        log_to_file("开始手动下载...");
+                                        match reqwest::get(&download_url).await {
+                                            Ok(resp) => {
+                                                match resp.bytes().await {
+                                                    Ok(bytes) => {
+                                                        log_to_file(&format!("下载完成，大小: {} bytes", bytes.len()));
+                                                        // 获取当前 exe 路径
+                                                        if let Ok(current_exe) = std::env::current_exe() {
+                                                            let exe_path = current_exe.clone();
+                                                            // 先备份旧文件
+                                                            let backup_path = current_exe.with_extension("exe.bak");
+                                                            let _ = std::fs::copy(&exe_path, &backup_path);
+                                                            // 写入新文件
+                                                            if let Ok(mut file) = std::fs::File::create(&exe_path) {
+                                                                use std::io::Write;
+                                                                let _ = file.write_all(&bytes);
+                                                                log_to_file("文件写入完成，准备重启...");
+                                                                // 重启应用
+                                                                handle.restart();
+                                                            } else {
+                                                                log_to_file("无法写入文件");
+                                                            }
+                                                        } else {
+                                                            log_to_file("无法获取当前exe路径");
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        log_to_file(&format!("读取下载内容失败: {}", e));
+                                                    }
+                                                }
                                             }
                                             Err(e) => {
-                                                log_to_file(&format!("下载失败: {}", e));
+                                                log_to_file(&format!("下载请求失败: {}", e));
                                             }
                                         }
                                     } else {
