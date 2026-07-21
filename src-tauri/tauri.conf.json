@@ -37,8 +37,7 @@
   "plugins": {
     "updater": {
       "active": true,
-      "endpoints": ["https://finance.52youran.top/api/version/latest"],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJENjc1MDU3ODMzNDkyClJXU1NOSU5YVUdlOUFIVlpFbkZZOE1aYlR6QmZNdVVkU0kxbFRRZEhzU1FmR0FkT1pGc0Q2dm9qCg=="
+      "endpoints": ["https://finance.52youran.top/api/version/latest"]
     }
   }
 }
