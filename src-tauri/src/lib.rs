@@ -77,13 +77,7 @@ pub fn run() {
     match result {
         Ok(app) => {
             log_to_file("构建成功，准备运行");
-            if let Err(e) = app.run(|_app_handle, event| {
-                if let tauri::RunEvent::Ready = event {
-                    log_to_file("应用 Ready");
-                }
-            }) {
-                log_to_file(&format!("运行失败: {}", e));
-            }
+            app.run(|_app_handle, _event| {});
         }
         Err(e) => {
             log_to_file(&format!("构建失败: {}", e));
