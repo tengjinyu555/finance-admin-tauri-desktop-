@@ -1,7 +1,7 @@
 
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::sync::Mutex;
+use tauri::Manager;
 
 fn log_to_file(msg: &str) {
     if let Ok(mut file) = OpenOptions::new()
@@ -16,7 +16,8 @@ fn log_to_file(msg: &str) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     log_to_file("应用启动");
-    tauri::Builder::default()
+    log_to_file("构建 Builder...");
+    let result = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
@@ -71,6 +72,21 @@ pub fn run() {
             log_to_file("setup 完成");
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!());
+
+    match result {
+        Ok(app) => {
+            log_to_file("构建成功，准备运行");
+            if let Err(e) = app.run(|_app_handle, event| {
+                if let tauri::RunEvent::Ready = event {
+                    log_to_file("应用 Ready");
+                }
+            }) {
+                log_to_file(&format!("运行失败: {}", e));
+            }
+        }
+        Err(e) => {
+            log_to_file(&format!("构建失败: {}", e));
+        }
+    }
 }
