@@ -37,26 +37,9 @@ pub fn run() {
 
                     let exe_name = current_exe.file_name().unwrap().to_str().unwrap();
 
-                    // 创建 bat 脚本 - 方案A：bat全权负责
+                    // 创建 bat 脚本 - 方案A：bat全权负责，简单版
                     let bat_content = format!(
-                        "@echo off\r\n\
-                         chcp 65001 >nul\r\n\
-                         set \"APP_DIR={AppDir}\"\r\n\
-                         set \"OLD_EXE={OldExe}\"\r\n\
-                         set \"NEW_EXE={NewExe}\"\r\n\
-                         \r\n\
-                         timeout /t 3 /nobreak >nul\r\n\
-                         taskkill /f /im \"{ExeName}\" >nul 2>&1\r\n\
-                         timeout /t 1 /nobreak >nul\r\n\
-                         \r\n\
-                         if exist \"%OLD_EXE%\" del /f /q \"%OLD_EXE%\" >nul 2>&1\r\n\
-                         \r\n\
-                         if exist \"%NEW_EXE%\" (\r\n\
-                             ren \"%NEW_EXE%\" \"{ExeName}\"\r\n\
-                             start \"\" \"%OLD_EXE%\"\r\n\
-                         )\r\n\
-                         exit",
-                        AppDir = exe_dir.display(),
+                        "@echo off\r\nsetlocal enabledelayedexpansion\r\nset \"OLD_EXE={OldExe}\"\r\nset \"NEW_EXE={NewExe}\"\r\ntimeout /t 3 /nobreak >nul\r\ntaskkill /f /im \"{ExeName}\" >nul 2>&1\r\ntimeout /t 1 /nobreak >nul\r\nif exist \"%OLD_EXE%\" del /f /q \"%OLD_EXE%\" >nul 2>&1\r\nif exist \"%NEW_EXE%\" (\r\nren \"%NEW_EXE%\" \"{ExeName}\"\r\nstart \"\" \"%OLD_EXE%\"\r\n)\r\nexit",
                         OldExe = current_exe.display(),
                         NewExe = new_path.display(),
                         ExeName = exe_name
@@ -142,25 +125,10 @@ pub fn run() {
 
                                                             // 使用简单的 BAT 脚本
                                                             let bat_content = format!(
-                                                                "@echo off\r\n\
-                                                                 echo 等待3秒...\r\n\
-                                                                 timeout /t 3 /nobreak > nul\r\n\
-                                                                 echo 删除旧版本...\r\n\
-                                                                 del /f /q \"{}\" 2>nul\r\n\
-                                                                 echo 重命名新版本...\r\n\
-                                                                 ren \"{}\" \"{}\" 2>nul\r\n\
-                                                                 echo 启动新版本...\r\n\
-                                                                 start \"\" \"{}\"\r\n\
-                                                                 echo 清理...\r\n\
-                                                                 del /f /q \"{}\" 2>nul\r\n\
-                                                                 del /f /q \"{}\" 2>nul\r\n\
-                                                                 del /f /q \"%~f0\" 2>nul",
-                                                                current_str,
-                                                                new_str,
-                                                                current_name,
-                                                                current_str,
-                                                                new_str,
-                                                                bat_path.display()
+                                                                "@echo off\r\nsetlocal enabledelayedexpansion\r\nset \"OLD_EXE={OldExe}\"\r\nset \"NEW_EXE={NewExe}\"\r\ntimeout /t 3 /nobreak >nul\r\ntaskkill /f /im \"{ExeName}\" >nul 2>&1\r\ntimeout /t 1 /nobreak >nul\r\nif exist \"%OLD_EXE%\" del /f /q \"%OLD_EXE%\" >nul 2>&1\r\nif exist \"%NEW_EXE%\" (\r\nren \"%NEW_EXE%\" \"{ExeName}\"\r\nstart \"\" \"%OLD_EXE%\"\r\n)\r\nexit",
+                                                                OldExe = current_str,
+                                                                NewExe = new_str,
+                                                                ExeName = current_name
                                                             );
                                                             if let Ok(mut bat_file) = std::fs::File::create(&bat_path) {
                                                                 let _ = bat_file.write_all(bat_content.as_bytes());
