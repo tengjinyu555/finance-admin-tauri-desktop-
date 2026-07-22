@@ -43,8 +43,9 @@ pub fn run() {
                     let new_file = new_path.display().to_string();
                     let name = current_exe.file_name().unwrap().to_str().unwrap();
 
+                    // 不用引号包裹路径，直接拼接
                     let cmd = format!(
-                        r#"cmd /c "timeout /t 2 /nobreak >nul & del /f /q "{}" & ren "{}" "{}" & start "" "{}""#,
+                        "cmd /c timeout /t 2 /nobreak >nul & del /f /q \"{}\" & ren \"{}\" \"{}\" & start \"\" \"{}\"",
                         current, new_file, name, current
                     );
                     log_to_file(&format!("执行cmd: {}", cmd));
