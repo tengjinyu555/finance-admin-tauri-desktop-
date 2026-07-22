@@ -602,7 +602,7 @@ const handleLogout = () => {
   gap: 12px;
   margin-top: 16px;
 }
-</style>
+
 .layout-container {
   height: 100vh;
 }
