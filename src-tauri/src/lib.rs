@@ -34,49 +34,46 @@ pub fn run() {
 
                     log_to_file(&format!("当前exe: {}", current_exe.display()));
                     log_to_file(&format!("新文件: {}", new_path.display()));
-                    log_to_file(&format!("脚本: {}", bat_path.display()));
 
                     let exe_name = current_exe.file_name().unwrap().to_str().unwrap();
 
-                    // 创建 bat 脚本 - 纯ASCII，避免编码问题
-                    let old_path = current_exe.display().to_string().replace('\\', "/");
-                    let new_file_path = new_path.display().to_string().replace('\\', "/");
-
+                    // 创建 bat 脚本 - 方案A：bat全权负责
                     let bat_content = format!(
                         "@echo off\r\n\
-                         taskkill /f /im \"{}\" >nul 2>&1\r\n\
-                         timeout /t 2 /nobreak >nul\r\n\
-                         del /f /q \"{}\" >nul 2>&1\r\n\
-                         ren \"{}\" \"{}\" 2>nul\r\n\
-                         start \"\" \"{}\"\r\n\
+                         chcp 65001 >nul\r\n\
+                         set \"APP_DIR={AppDir}\"\r\n\
+                         set \"OLD_EXE={OldExe}\"\r\n\
+                         set \"NEW_EXE={NewExe}\"\r\n\
+                         \r\n\
+                         timeout /t 3 /nobreak >nul\r\n\
+                         taskkill /f /im \"{ExeName}\" >nul 2>&1\r\n\
+                         timeout /t 1 /nobreak >nul\r\n\
+                         \r\n\
+                         if exist \"%OLD_EXE%\" del /f /q \"%OLD_EXE%\" >nul 2>&1\r\n\
+                         \r\n\
+                         if exist \"%NEW_EXE%\" (\r\n\
+                             ren \"%NEW_EXE%\" \"{ExeName}\"\r\n\
+                             start \"\" \"%OLD_EXE%\"\r\n\
+                         )\r\n\
                          exit",
-                        exe_name,
-                        old_path,
-                        new_file_path,
-                        exe_name,
-                        old_path
+                        AppDir = exe_dir.display(),
+                        OldExe = current_exe.display(),
+                        NewExe = new_path.display(),
+                        ExeName = exe_name
                     );
 
                     if let Ok(mut f) = std::fs::File::create(&bat_path) {
                         use std::io::Write;
                         let _ = f.write_all(bat_content.as_bytes());
                         log_to_file("BAT脚本已写入");
-                        log_to_file(&format!("脚本内容: {}", bat_content));
                     }
 
                     log_to_file("启动BAT脚本...");
-                    match std::process::Command::new("cmd")
+                    let _ = std::process::Command::new("cmd")
                         .args(["/c", bat_path.to_string_lossy().to_string().as_str()])
-                        .spawn() {
-                            Ok(mut child) => {
-                                log_to_file("BAT已启动，等待...");
-                                let _ = child.wait();
-                                log_to_file("BAT执行完成");
-                            }
-                            Err(e) => log_to_file(&format!("启动BAT失败: {}", e)),
-                        }
+                        .spawn();
 
-                    log_to_file("退出当前应用...");
+                    log_to_file("直接退出，交由BAT处理...");
                     std::process::exit(0);
                 }
             });
