@@ -38,31 +38,27 @@ pub fn run() {
                     log_to_file("等待3秒...");
                     std::thread::sleep(std::time::Duration::from_secs(3));
 
-                    // 尝试直接删除旧文件
-                    log_to_file("尝试删除旧文件...");
-                    match std::fs::remove_file(&current_exe) {
-                        Ok(_) => log_to_file("旧文件删除成功"),
-                        Err(e) => log_to_file(&format!("删除旧文件失败: {}", e)),
-                    }
+                    // 用 cmd 执行操作，用引号包裹路径处理中文
+                    let current = current_exe.display().to_string();
+                    let new_file = new_path.display().to_string();
+                    let name = current_exe.file_name().unwrap().to_str().unwrap();
 
-                    // 尝试重命名新文件
-                    log_to_file("尝试重命名新文件...");
-                    match std::fs::rename(&new_path, &current_exe) {
-                        Ok(_) => {
-                            log_to_file("重命名成功，启动新版本...");
-                            let _ = std::process::Command::new(&current_exe).spawn();
+                    let cmd = format!(
+                        r#"cmd /c "timeout /t 2 /nobreak >nul & del /f /q "{}" & ren "{}" "{}" & start "" "{}""#,
+                        current, new_file, name, current
+                    );
+                    log_to_file(&format!("执行cmd: {}", cmd));
+
+                    match std::process::Command::new("cmd")
+                        .args(["/c", &cmd])
+                        .spawn() {
+                            Ok(mut child) => {
+                                log_to_file("更新命令已执行，等待完成...");
+                                let _ = child.wait();
+                                log_to_file("cmd 命令执行完成");
+                            }
+                            Err(e) => log_to_file(&format!("执行失败: {}", e)),
                         }
-                        Err(e) => {
-                            log_to_file(&format!("重命名失败: {}", e));
-                            // 如果直接重命名失败，用 cmd 来做
-                            let cmd = format!("cmd /c timeout /t 2 /nobreak >nul & del /f /q \"{}\" & ren \"{}\" \"{}\" & start \"\" \"{}\"",
-                                current_exe.display(), new_path.display(),
-                                current_exe.file_name().unwrap().to_str().unwrap(),
-                                current_exe.display());
-                            log_to_file(&format!("执行cmd: {}", cmd));
-                            let _ = std::process::Command::new("cmd").args(["/c", &cmd]).spawn();
-                        }
-                    }
 
                     log_to_file("退出当前应用...");
                     std::process::exit(0);
