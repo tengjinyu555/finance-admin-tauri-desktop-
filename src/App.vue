@@ -1,8 +1,10 @@
 <template>
   <router-view />
+  <UpdateChecker />
 </template>
 
 <script setup>
+import UpdateChecker from './components/UpdateChecker.vue'
 </script>
 
 <style>

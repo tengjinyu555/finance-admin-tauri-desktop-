@@ -39,7 +39,8 @@ pub fn run() {
             // 使用 std::thread 避免 async 问题
             std::thread::spawn(move || {
                 log_to_file("检查更新线程启动");
-                std::thread::sleep(std::time::Duration::from_secs(2));
+                // 等待更长时间确保前端完全加载
+                std::thread::sleep(std::time::Duration::from_secs(5));
                 log_to_file("开始检查更新");
                 log_to_file(&format!("当前版本: {}", env!("CARGO_PKG_VERSION")));
 
