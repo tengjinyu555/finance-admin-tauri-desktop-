@@ -62,6 +62,7 @@ const startUpdateDownload = () => {
   updateState.status = 'downloading'
   updateState.loaded = 0
   updateState.total = 0
+  emit('update-start-download')
 }
 
 const restartApp = () => {
