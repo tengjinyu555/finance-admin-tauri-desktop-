@@ -38,51 +38,23 @@ pub fn run() {
 
                     let exe_name = current_exe.file_name().unwrap().to_str().unwrap();
 
-                    // 创建 bat 脚本
+                    // 创建 bat 脚本 - 纯ASCII，避免编码问题
+                    let old_path = current_exe.display().to_string().replace('\\', "/");
+                    let new_file_path = new_path.display().to_string().replace('\\', "/");
+
                     let bat_content = format!(
                         "@echo off\r\n\
-                         setlocal enabledelayedexpansion\r\n\
-                         echo [更新脚本] 开始执行...\r\n\
-                         echo [更新脚本] 杀死旧进程...\r\n\
                          taskkill /f /im \"{}\" >nul 2>&1\r\n\
                          timeout /t 2 /nobreak >nul\r\n\
-                         echo [更新脚本] 检查旧文件是否存在...\r\n\
-                         if exist \"{}\" (\r\n\
-                             echo [更新脚本] 删除旧文件...\r\n\
-                             del /f /q \"{}\" >nul 2>&1\r\n\
-                             if exist \"{}\" (\r\n\
-                                 echo [更新脚本] 删除失败！\r\n\
-                                 pause\r\n\
-                                 exit /b 1\r\n\
-                             )\r\n\
-                         )\r\n\
-                         echo [更新脚本] 检查新文件是否存在...\r\n\
-                         if not exist \"{}\" (\r\n\
-                             echo [更新脚本] 新文件不存在！\r\n\
-                             pause\r\n\
-                             exit /b 1\r\n\
-                         )\r\n\
-                         echo [更新脚本] 重命名新文件...\r\n\
-                         ren \"{}\" \"{}\"\r\n\
-                         if errorlevel 1 (\r\n\
-                             echo [更新脚本] 重命名失败！\r\n\
-                             pause\r\n\
-                             exit /b 1\r\n\
-                         )\r\n\
-                         echo [更新脚本] 启动新版本...\r\n\
+                         del /f /q \"{}\" >nul 2>&1\r\n\
+                         ren \"{}\" \"{}\" 2>nul\r\n\
                          start \"\" \"{}\"\r\n\
-                         echo [更新脚本] 更新成功！\r\n\
-                         timeout /t 2 /nobreak >nul\r\n\
-                         del /f /q \"%~f0\" >nul 2>&1\r\n\
                          exit",
                         exe_name,
-                        current_exe.display(),
-                        current_exe.display(),
-                        current_exe.display(),
-                        new_path.display(),
-                        new_path.display(),
+                        old_path,
+                        new_file_path,
                         exe_name,
-                        current_exe.display()
+                        old_path
                     );
 
                     if let Ok(mut f) = std::fs::File::create(&bat_path) {
