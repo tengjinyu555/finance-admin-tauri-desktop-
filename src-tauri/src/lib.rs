@@ -1,7 +1,6 @@
 
 use std::fs::OpenOptions;
 use std::io::Write;
-use tauri::Manager;
 
 fn log_to_file(msg: &str) {
     if let Ok(mut file) = OpenOptions::new()
@@ -43,7 +42,7 @@ pub fn run() {
                                     log_to_file("检查完成");
                                     if let Some(update) = update {
                                         log_to_file(&format!("发现新版本: {}", update.version));
-                                        let download_url = update.download_url().to_string();
+                                        let download_url = update.download_url.to_string();
                                         log_to_file(&format!("下载地址: {}", download_url));
 
                                         // 手动下载绕过签名验证
