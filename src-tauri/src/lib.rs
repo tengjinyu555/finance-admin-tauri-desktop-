@@ -30,35 +30,44 @@ pub fn run() {
                 if let Ok(current_exe) = std::env::current_exe() {
                     let exe_dir = current_exe.parent().unwrap();
                     let new_path = exe_dir.join("update_new.exe");
+                    let bat_path = exe_dir.join("update.bat");
 
                     log_to_file(&format!("当前exe: {}", current_exe.display()));
                     log_to_file(&format!("新文件: {}", new_path.display()));
+                    log_to_file(&format!("脚本: {}", bat_path.display()));
 
-                    // 等待几秒让文件句柄释放
-                    log_to_file("等待3秒...");
-                    std::thread::sleep(std::time::Duration::from_secs(3));
-
-                    // 用 cmd 执行操作，用引号包裹路径处理中文
-                    let current = current_exe.display().to_string();
-                    let new_file = new_path.display().to_string();
-                    let name = current_exe.file_name().unwrap().to_str().unwrap();
-
-                    // 不用引号包裹路径，直接拼接
-                    let cmd = format!(
-                        "cmd /c timeout /t 2 /nobreak >nul & del /f /q \"{}\" & ren \"{}\" \"{}\" & start \"\" \"{}\"",
-                        current, new_file, name, current
+                    // 创建 bat 脚本
+                    let bat_content = format!(
+                        "@echo off\r\n\
+                         timeout /t 2 /nobreak >nul\r\n\
+                         del /f /q \"{}\"\r\n\
+                         ren \"{}\" \"{}\"\r\n\
+                         start \"\" \"{}\"\r\n\
+                         del /f /q \"{}\"\r\n\
+                         del /f /q \"%~f0\"",
+                        current_exe.display(),
+                        new_path.display(),
+                        current_exe.file_name().unwrap().to_str().unwrap(),
+                        current_exe.display(),
+                        bat_path.display()
                     );
-                    log_to_file(&format!("执行cmd: {}", cmd));
 
+                    if let Ok(mut f) = std::fs::File::create(&bat_path) {
+                        use std::io::Write;
+                        let _ = f.write_all(bat_content.as_bytes());
+                        log_to_file("BAT脚本已写入");
+                    }
+
+                    log_to_file("启动BAT脚本...");
                     match std::process::Command::new("cmd")
-                        .args(["/c", &cmd])
+                        .args(["/c", bat_path.to_string_lossy().to_string().as_str()])
                         .spawn() {
                             Ok(mut child) => {
-                                log_to_file("更新命令已执行，等待完成...");
+                                log_to_file("BAT已启动，等待...");
                                 let _ = child.wait();
-                                log_to_file("cmd 命令执行完成");
+                                log_to_file("BAT执行完成");
                             }
-                            Err(e) => log_to_file(&format!("执行失败: {}", e)),
+                            Err(e) => log_to_file(&format!("启动BAT失败: {}", e)),
                         }
 
                     log_to_file("退出当前应用...");
