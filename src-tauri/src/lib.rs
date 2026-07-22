@@ -54,19 +54,39 @@ pub fn run() {
                                                         log_to_file(&format!("下载完成，大小: {} bytes", bytes.len()));
                                                         // 获取当前 exe 路径
                                                         if let Ok(current_exe) = std::env::current_exe() {
-                                                            let exe_path = current_exe.clone();
-                                                            // 先备份旧文件
-                                                            let backup_path = current_exe.with_extension("exe.bak");
-                                                            let _ = std::fs::copy(&exe_path, &backup_path);
-                                                            // 写入新文件
-                                                            if let Ok(mut file) = std::fs::File::create(&exe_path) {
+                                                            let exe_dir = current_exe.parent().unwrap();
+                                                            let exe_name = current_exe.file_name().unwrap();
+                                                            // 下载到临时文件
+                                                            let new_path = exe_dir.join("finance-admin-new.exe");
+                                                            let bat_path = exe_dir.join("update.bat");
+                                                            if let Ok(mut file) = std::fs::File::create(&new_path) {
                                                                 use std::io::Write;
                                                                 let _ = file.write_all(&bytes);
-                                                                log_to_file("文件写入完成，准备重启...");
-                                                                // 重启应用
-                                                                handle.restart();
+                                                                log_to_file("新文件已下载，创建批处理...");
+                                                                // 创建批处理脚本来替换文件
+                                                                let bat_content = format!(
+                                                                    "@echo off\r\n\
+                                                                     timeout /t 2 /nobreak > nul\r\n\
+                                                                     del \"{}\"\r\n\
+                                                                     ren \"{}\" \"{}\"\r\n\
+                                                                     start \"\" \"{}\"\r\n\
+                                                                     del \"%~f0\"",
+                                                                    current_exe.display(),
+                                                                    new_path.display(),
+                                                                    exe_name.to_str().unwrap(),
+                                                                    current_exe.display()
+                                                                );
+                                                                if let Ok(mut bat_file) = std::fs::File::create(&bat_path) {
+                                                                    let _ = bat_file.write_all(bat_content.as_bytes());
+                                                                    log_to_file("批处理已创建，准备替换并重启...");
+                                                                    // 启动批处理
+                                                                    let _ = std::process::Command::new("cmd")
+                                                                        .args(["/c", bat_path.to_str().unwrap()])
+                                                                        .spawn();
+                                                                    std::process::exit(0);
+                                                                }
                                                             } else {
-                                                                log_to_file("无法写入文件");
+                                                                log_to_file("无法创建新文件");
                                                             }
                                                         } else {
                                                             log_to_file("无法获取当前exe路径");
