@@ -38,9 +38,12 @@ pub fn run() {
 
                     log_to_file(&format!("脚本路径: {}", ps_path.display()));
 
-                    // 启动 PowerShell 脚本
-                    match std::process::Command::new("powershell")
-                        .args(["-ExecutionPolicy", "Bypass", "-File", &ps_path.to_string_lossy()])
+                    // 使用 cmd /c start 来启动 PowerShell，这样它会作为一个独立进程运行
+                    let cmd = format!("cmd /c start powershell -ExecutionPolicy Bypass -File \"{}\"", ps_path.display());
+                    log_to_file(&format!("执行命令: {}", cmd));
+
+                    match std::process::Command::new("cmd")
+                        .args(["/c", "start", "powershell", "-ExecutionPolicy", "Bypass", "-File", &ps_path.to_string_lossy()])
                         .spawn() {
                             Ok(_) => {
                                 log_to_file("PowerShell 脚本已启动");
@@ -50,6 +53,8 @@ pub fn run() {
                             }
                         }
 
+                    // 等待2秒让脚本完全启动
+                    std::thread::sleep(std::time::Duration::from_secs(2));
                     log_to_file("退出当前应用...");
                     std::process::exit(0);
                 }
