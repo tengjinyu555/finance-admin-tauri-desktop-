@@ -29,32 +29,29 @@ pub fn run() {
                 log_to_file("收到重启指令");
                 if let Ok(current_exe) = std::env::current_exe() {
                     let exe_dir = current_exe.parent().unwrap();
-                    let ps_path = exe_dir.join("update.ps1");
+                    let bat_path = exe_dir.join("update.bat");
 
                     // 读取并记录脚本内容
-                    if let Ok(content) = std::fs::read_to_string(&ps_path) {
+                    if let Ok(content) = std::fs::read_to_string(&bat_path) {
                         log_to_file(&format!("脚本内容: {}", content));
                     }
 
-                    log_to_file(&format!("脚本路径: {}", ps_path.display()));
+                    log_to_file(&format!("脚本路径: {}", bat_path.display()));
 
-                    // 使用 cmd /c start 来启动 PowerShell，这样它会作为一个独立进程运行
-                    let cmd = format!("cmd /c start powershell -ExecutionPolicy Bypass -File \"{}\"", ps_path.display());
-                    log_to_file(&format!("执行命令: {}", cmd));
-
+                    // 直接用 cmd 执行 bat 文件
                     match std::process::Command::new("cmd")
-                        .args(["/c", "start", "powershell", "-ExecutionPolicy", "Bypass", "-File", &ps_path.to_string_lossy()])
+                        .args(["/c", bat_path.to_string_lossy().to_string().as_str()])
                         .spawn() {
                             Ok(_) => {
-                                log_to_file("PowerShell 脚本已启动");
+                                log_to_file("BAT 脚本已启动");
                             }
                             Err(e) => {
-                                log_to_file(&format!("启动 PowerShell 失败: {}", e));
+                                log_to_file(&format!("启动 BAT 失败: {}", e));
                             }
                         }
 
-                    // 等待2秒让脚本完全启动
-                    std::thread::sleep(std::time::Duration::from_secs(2));
+                    // 等待3秒让脚本完全启动
+                    std::thread::sleep(std::time::Duration::from_secs(3));
                     log_to_file("退出当前应用...");
                     std::process::exit(0);
                 }
@@ -111,7 +108,7 @@ pub fn run() {
                                                     if let Ok(current_exe) = std::env::current_exe() {
                                                         let exe_dir = current_exe.parent().unwrap();
                                                         let new_path = exe_dir.join("update_new.exe");
-                                                        let ps_path = exe_dir.join("update.ps1");
+                                                        let bat_path = exe_dir.join("update.bat");
 
                                                         if let Ok(mut file) = std::fs::File::create(&new_path) {
                                                             use std::io::Write;
@@ -120,35 +117,33 @@ pub fn run() {
 
                                                             let current_str = current_exe.display().to_string();
                                                             let new_str = new_path.display().to_string();
-                                                            let ps_str = ps_path.display().to_string();
                                                             let current_name = current_exe.file_name().unwrap().to_str().unwrap();
 
-                                                            let ps_content = format!(
-                                                                "Start-Transcript -Path '{}' -Force\n\
-                                                                 Write-Host '等待3秒...'\n\
-                                                                 Start-Sleep -Seconds 3\n\
-                                                                 Write-Host '删除旧版本: {}'\n\
-                                                                 Remove-Item -Path '{}' -Force -ErrorAction SilentlyContinue\n\
-                                                                 Write-Host '重命名新版本'\n\
-                                                                 Rename-Item -Path '{}' -NewName '{}' -Force\n\
-                                                                 Write-Host '启动新版本'\n\
-                                                                 Start-Process -FilePath '{}' -Wait\n\
-                                                                 Write-Host '清理'\n\
-                                                                 Remove-Item -Path '{}' -Force -ErrorAction SilentlyContinue\n\
-                                                                 Remove-Item -Path '{}' -Force -ErrorAction SilentlyContinue\n\
-                                                                 Stop-Transcript",
-                                                                exe_dir.join("update.log").display(),
-                                                                current_str,
+                                                            // 使用简单的 BAT 脚本
+                                                            let bat_content = format!(
+                                                                "@echo off\r\n\
+                                                                 echo 等待3秒...\r\n\
+                                                                 timeout /t 3 /nobreak > nul\r\n\
+                                                                 echo 删除旧版本...\r\n\
+                                                                 del /f /q \"{}\" 2>nul\r\n\
+                                                                 echo 重命名新版本...\r\n\
+                                                                 ren \"{}\" \"{}\" 2>nul\r\n\
+                                                                 echo 启动新版本...\r\n\
+                                                                 start \"\" \"{}\"\r\n\
+                                                                 echo 清理...\r\n\
+                                                                 del /f /q \"{}\" 2>nul\r\n\
+                                                                 del /f /q \"{}\" 2>nul\r\n\
+                                                                 del /f /q \"%~f0\" 2>nul",
                                                                 current_str,
                                                                 new_str,
                                                                 current_name,
                                                                 current_str,
                                                                 new_str,
-                                                                ps_str
+                                                                bat_path.display()
                                                             );
-                                                            if let Ok(mut ps_file) = std::fs::File::create(&ps_path) {
-                                                                let _ = ps_file.write_all(ps_content.as_bytes());
-                                                                log_to_file("更新脚本已创建");
+                                                            if let Ok(mut bat_file) = std::fs::File::create(&bat_path) {
+                                                                let _ = bat_file.write_all(bat_content.as_bytes());
+                                                                log_to_file("BAT脚本已创建");
                                                                 let _ = handle.emit("update-complete", "");
                                                             }
                                                         }
